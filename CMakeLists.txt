@@ -14,7 +14,7 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 include_directories(src/include src E:/MSYS2/ucrt64/include)
 link_directories(src/lib E:/MSYS2/ucrt64/lib)
-link_libraries(SDL3 SDL3_image opengl32 glew32)
+link_libraries(SDL3 opengl32 glew32)
 
 file(GLOB SOURCES "src/*/*.c")
 add_executable(game ${SOURCES})

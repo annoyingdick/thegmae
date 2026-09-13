@@ -1,11 +1,16 @@
 #include <GL/glew.h>
-#include <SDL3_image/SDL_image.h>
 #include "def.h"
 #include "PathHandler.h"
 #include "Pip.h"
 #include "TexturesHandler.h"
 #include "TaskManager.h"
 #include "Arena.h"
+
+#define STBI_MALLOC mallocd
+#define STBI_REALLOC reallocd
+#define STBI_FREE free
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 #define INIT_NUM_TASKS 2
 
@@ -89,45 +94,36 @@ static bool uploadBatch(TaskLoadTexture* const task) {
 static bool isTextureValid(const TextureID id) {
     return names[id];
 }
-static SDL_Surface* openImage(const char fileName[]) {
+static stbi_uc* openImage(TaskLoadTexture* const task) {
     const char relPathPreStr[] = "mesh\\";
 
-    const PathStringSize relPathStrSize = sizeof(relPathPreStr) + strlen(fileName); 
+    const PathStringSize relPathStrSize = sizeof(relPathPreStr) + strlen(task->path);
 
     char relPathStr[relPathStrSize], absPathStr[PH_GetAbsolutePathStrSize(relPathStrSize)];
 
     strcpy_s(relPathStr, relPathStrSize, relPathPreStr);
-    strcat_s(relPathStr, relPathStrSize, fileName);
+    strcat_s(relPathStr, relPathStrSize, task->path);
     PH_GetAbsolutePathStr(absPathStr, relPathStr);
 
-    return IMG_Load(absPathStr);
-}
-static void destroySurface(void* const surface) {
-    SDL_DestroySurface(surface);
+    return stbi_load(absPathStr, &task->width, &task->height, NULL, 4);
 }
 static void workerThrd(TaskLoadTexture* const task) {
-    SDL_Surface* const temp = openImage(task->path);
+    stbi_uc* const image = openImage(task);
 
-    if (temp) {
-	if (temp->w <= MAX_TEXTURE_SIZE && temp->h <= MAX_TEXTURE_SIZE) {
-	    SDL_Surface* const main = SDL_ConvertSurface(temp, SDL_PIXELFORMAT_RGBA32);
-
-	    memcpy(task->bufferPointer, main->pixels, (size_t)main->pitch * main->h);
+    if (image) {
+	if (task->width <= MAX_TEXTURE_SIZE && task->height <= MAX_TEXTURE_SIZE) {
+	    memcpy(task->bufferPointer, image, (size_t)task->width * task->height * 4);
 
 	    //SDL_Surface* const main = temp;
 
-	    task->width = main->w;
-	    task->height = main->h;
-	    task->nextBatchId = getNumBatchesForSize(main->w, main->h);
+	    task->nextBatchId = getNumBatchesForSize(task->width, task->height);
 	    task->numBatches = task->nextBatchId - 1;
-
-	    destroySurface(main);
 	}
 	else throwFatal(task->path, "Max texture size is 4096 by 4096 pixels");
     }
-    else throwFatal("SDL Image error occurred!", SDL_GetError());
+    else throwFatal(task->path, "Image loading error occurred!");
 
-    destroySurface(temp);
+    stbi_image_free(image);
 }
 static void createLoadTask(TaskLoadTexture* const task, const char path[const]) {
     //pointer argument to task object that is located on stack

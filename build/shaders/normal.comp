@@ -1,0 +1,39 @@
+#version 460 core
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct DrawElementsIndirectCommand {
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
+    int baseVertex;
+    uint baseInstance;
+};
+
+layout (binding = 2, std430) buffer commandsBuffer {
+    DrawElementsIndirectCommand commands[];
+};
+layout (binding = 3, std430) buffer instancesDataBuffer {
+    mat4 instancesData[];
+};
+layout (binding = 4, std430) writeonly buffer usedInstancesIdsBuffer {
+    uint usedInstancesIds[];
+};
+layout (binding = 5, std430) readonly buffer instancesMeshIdsBuffer {
+    uint instancesMeshIds[];
+};
+
+//needed to calculate mvp matrix
+layout (binding = 0) uniform uniforms {
+    mat4 pvMat;
+};
+
+void main() {
+    //instance is visible
+    instancesData[gl_GlobalInvocationID.x] = pvMat * instancesData[gl_GlobalInvocationID.x];
+
+    const uint meshId = instancesMeshIds[gl_GlobalInvocationID.x];
+    const uint localMeshInstanceId = atomicAdd(commands[meshId].instanceCount, 1);
+
+    usedInstancesIds[commands[meshId].baseInstance + localMeshInstanceId] = gl_GlobalInvocationID.x;
+}

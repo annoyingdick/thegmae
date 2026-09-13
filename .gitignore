@@ -1,0 +1,7 @@
+build/*
+.cache
+!build/levels
+!build/mesh
+!build/shaders
+CMakeFiles
+CMakeCache.txt

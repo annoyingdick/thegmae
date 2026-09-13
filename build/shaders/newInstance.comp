@@ -1,0 +1,31 @@
+#version 460 core
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct DrawElementsIndirectCommand {
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
+    int baseVertex;
+    uint baseInstance;
+};
+
+layout (binding = 2, std430) buffer commandsBuffer {
+    DrawElementsIndirectCommand commands[];
+};
+layout (binding = 5, std430) writeonly buffer instancesMeshIdsBuffer {
+    uint instancesMeshIds[];
+};
+
+uniform uint baseMeshId;
+
+void main() {
+    const uint meshId = baseMeshId + gl_GlobalInvocationID.x;
+
+    //make sure that we expand the non zero region
+    if (commands[meshId - 1].count != 0) {
+	instancesMeshIds[commands[meshId].baseInstance] = meshId - 1;
+    }
+
+    ++commands[meshId].baseInstance;
+}

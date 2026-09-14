@@ -8,7 +8,7 @@
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
-#include <nuklear/nuklear.h>
-#include <nuklear/nuklear_sdl_gl3.h>
+#include <nuklear.h>
+#include <nuklear_sdl_gl3.h>
 
 #endif

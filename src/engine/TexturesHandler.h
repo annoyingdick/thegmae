@@ -2,7 +2,6 @@
 #define TexturesHandler_h_
 
 #include <stdbool.h>
-#include <GL/glew.h>
 #include "TaskLoadTexture.h"
 
 #define INIT_NUM_TEXTURES 2

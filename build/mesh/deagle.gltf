@@ -61,7 +61,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":4373,
+			"count":4361,
 			"max":[
 				0.08926796913146973,
 				0.31920742988586426,
@@ -77,7 +77,7 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":4373,
+			"count":4361,
 			"type":"VEC2"
 		},
 		{
@@ -90,20 +90,20 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":52476,
+			"byteLength":52332,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":34984,
-			"byteOffset":52476,
+			"byteLength":34888,
+			"byteOffset":52332,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":26190,
-			"byteOffset":87460,
+			"byteOffset":87220,
 			"target":34963
 		}
 	],
@@ -115,7 +115,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":113652,
+			"byteLength":113412,
 			"uri":"deagle.bin"
 		}
 	]

@@ -11,6 +11,9 @@ set(ENABLE_ALL_WARNINGS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(SDL_TEST_LIBRARY OFF)
+set(glew-cmake_BUILD_SHARED OFF)
+
 FetchContent_Declare(
     SDL
     GIT_REPOSITORY https://github.com/libsdl-org/SDL

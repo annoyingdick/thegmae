@@ -3,5 +3,6 @@ build/*
 !build/levels
 !build/mesh
 !build/shaders
+!build/fonts
 CMakeFiles
 CMakeCache.txt

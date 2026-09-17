@@ -46,15 +46,13 @@ VARS_MESH
 
 typedef struct {
     RegionSize verticesSize, numIndices;
-    TextureID numUsedTextures;
 
     float* vertices;
     const Index3D* indices;
-    const char* const* usedTextures;
 } MeshInitWithDataInfo;
 
 void Mesh_Init(Mesh* mesh, PipID pipId, const char fileName[]);
-//void Mesh_InitWithData(Mesh* mesh, GraphicsPipelineID pipId, MeshInitWithDataInfo info);
+void Mesh_InitWithData(Mesh* mesh, PipID pipId, MeshInitWithDataInfo info);
 bool Mesh_IsValid(const Mesh* mesh);
 InstanceID Mesh_NewInstance(Mesh* mesh);
 void Mesh_DeleteInstance(Mesh* mesh);

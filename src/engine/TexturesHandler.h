@@ -15,6 +15,7 @@ X(TaskLoadTextureID, nextTaskId, INTEGER) \
 void TexturesHandler_Init();
 GLuint TexturesHandler_GetGLTexture(TextureID id);
 TextureID TexturesHandler_BeginLoadingTask(const char name[], const char path[]);
+TextureID TexturesHandler_(const char name[], const char path[]);
 void TexturesHandler_UnloadTexture(TextureID id);
 //returns true when this texture gets allocated storage
 void TexturesHandler_Quit();

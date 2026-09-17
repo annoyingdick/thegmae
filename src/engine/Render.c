@@ -34,6 +34,7 @@ static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
     [GRAPHICS_PIPELINE_SKINNED] = MAX_BONES * sizeof(mat4),
+    [GRAPHICS_PIPELINE_GUI] = sizeof(mat4),
     [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4)
 };
 static const GLsizeiptr pipelinesVertexSizes[] = {
@@ -43,6 +44,8 @@ static const GLsizeiptr pipelinesVertexSizes[] = {
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float), 
     [GRAPHICS_PIPELINE_SKINNED] = (
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE + VERTEX_WEIGHTS_SIZE) * sizeof(float), 
+    [GRAPHICS_PIPELINE_GUI] = (
+	VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float), 
     [GRAPHICS_PIPELINE_STATIC] = (VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float)
 };
 
@@ -179,10 +182,10 @@ static void setPerspectiveMatrix(const float aspect) {
 }
 static void initPipelines() {
     const char* const vertexShaderNames[] = {
-	"normal.vert", "interp.vert", "skinned.vert"
+	"normal.vert", "interp.vert", "skinned.vert", "gui.vert"
     };
     const char* const piShaderNames[] = {
-	"normal.comp", "interp.comp", "skinned.comp"
+	"normal.comp", "interp.comp", "skinned.comp", "gui.comp"
     };
     
     for (PipID i = 0; i < NUM_DYNAMIC_PIPELINES; i++) {

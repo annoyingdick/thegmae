@@ -44,6 +44,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stbimage)
 FetchContent_Declare(
+    stbtruetype 
+    URL https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_truetype.h
+    DOWNLOAD_NO_EXTRACT TRUE
+)
+FetchContent_MakeAvailable(stbtruetype)
+FetchContent_Declare(
     cgltf 
     URL https://raw.githubusercontent.com/jkuhlmann/cgltf/v1.15/cgltf.h
     DOWNLOAD_NO_EXTRACT TRUE
@@ -78,5 +84,6 @@ endif()
 
 target_include_directories(thegmae PUBLIC ${nuklear_SOURCE_DIR})
 target_include_directories(thegmae PUBLIC ${stbimage_SOURCE_DIR})
+target_include_directories(thegmae PUBLIC ${stbtruetype_SOURCE_DIR})
 target_include_directories(thegmae PUBLIC ${cgltf_SOURCE_DIR})
 target_include_directories(thegmae PUBLIC ${khashl_SOURCE_DIR})

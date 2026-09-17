@@ -41,7 +41,7 @@ void PH_GetAbsolutePathStr(char dest[const restrict], const char relPathStr[cons
     strcpy(dest, filesMainPathStr);
     strcat(dest, relPathStr);
 }
-char* PH_OpenFile(const char relPathStr[const], const PathStringSize relPathStrSize, size_t* const outFileSize) {
+void* PH_OpenFile(const char relPathStr[const], const PathStringSize relPathStrSize, size_t* const outFileSize) {
     FILE* const file = openFile(relPathStr, relPathStrSize);
 
     fseek(file, 0, SEEK_END);

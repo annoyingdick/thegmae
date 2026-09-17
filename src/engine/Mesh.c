@@ -50,15 +50,14 @@ void Mesh_Init(Mesh* const mesh, const PipID pipId, const char fileName[const]) 
 	.mesh = mesh
     });
 }
-/*
 void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDataInfo info) {
     initMesh(mesh, pipId);
 
-    mesh->numUsedTextures = info.numUsedTextures;
+    //mesh->numUsedTextures = info.numUsedTextures;
 
-    allocTextures(mesh);
+    //allocTextures(mesh);
 
-    for (TextureID i = 0; i < info.numUsedTextures; i++) {
+    /*for (TextureID i = 0; i < info.numUsedTextures; i++) {
 	mesh->usedTextures[i] = loadTexture(NULL, info.usedTextures[i]);
     }
 
@@ -68,6 +67,11 @@ void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDa
 	for (size_t i = 0; i < info.verticesSize / numFloats; i++) {
 	    info.vertices[(i * numFloats) + 3] += (float)mesh->usedTextures[0];
 	}
+    }
+    */
+
+    for (unsigned int i = 0; i < info.numIndices; i++) {
+	printf("%u ", info.indices[i]);
     }
 
     R_UploadIndices(&mesh->indicesRegion, info.numIndices, info.indices);
@@ -80,7 +84,6 @@ void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDa
 
     makeCommand(mesh);
 }
-*/
 bool Mesh_IsValid(const Mesh* const mesh) {
     return mesh->indicesRegion.size;
 }

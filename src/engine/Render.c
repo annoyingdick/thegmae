@@ -36,7 +36,7 @@ static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
     [GRAPHICS_PIPELINE_SKINNED] = MAX_BONES * sizeof(mat4),
-    [GRAPHICS_PIPELINE_GUI] = sizeof(mat4),
+    [GRAPHICS_PIPELINE_GUI] = 0,
     [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4)
 };
 static const GLsizeiptr pipelinesVertexSizes[] = {

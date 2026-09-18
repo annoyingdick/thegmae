@@ -23,6 +23,15 @@ typedef struct {
 
 static Glyph characters[NUM_CHARACTERS];
 
+static unsigned char* beginPacking(stbtt_pack_context* const context, const int size) {
+    const int padding = 1;
+
+    unsigned char* const textureData = mallocd(sizeof(*textureData) * size * size);
+
+    stbtt_PackBegin(context, textureData, size, size, 0, padding, NULL);
+
+    return textureData;
+}
 static void initText(const char* text) {
     const size_t textLength = strlen(text);
 
@@ -63,15 +72,27 @@ static void initText(const char* text) {
     puts("asf");
     Mesh_NewInstance(&mesh);
 }
+static void initFont(const unsigned char fontData[const]) {
+    stbtt_fontinfo info;
+
+    if(!stbtt_InitFont(&info, fontData, 0)) throwFatal("stb_truetype error occurred!", "Failed to initialize the font");
+}
+static void packRange(stbtt_pack_context* const context, const unsigned char fontData[const], stbtt_packedchar chars[const]) {
+    const float fontSize = 64;
+
+    stbtt_PackFontRange(context, fontData, 0, fontSize, FIRST_CHARACTER, NUM_CHARACTERS, chars);
+}
+static void getQuad(const stbtt_packedchar chars[const], const int size, const int index, stbtt_aligned_quad* const quad) {
+    float unusedX, unusedY;
+
+    stbtt_GetPackedQuad(chars, size, size, index, &unusedX, &unusedY, quad, 0);
+}
 
 void GUI_Init() {
     const char path[] = "fonts\\Arimo-Medium.ttf";
 
-    const int atlasSize = 512, padding = 1;
+    const int atlasSize = 512;
 
-    const float fontSize = 64;
-
-    stbtt_fontinfo info;
     stbtt_pack_context ctx;
 
     stbtt_packedchar packedChars[NUM_CHARACTERS];
@@ -80,12 +101,12 @@ void GUI_Init() {
 
     unsigned char* const fontData = PH_OpenFile(path, sizeof(path), &dataSize);
 
-    if(!stbtt_InitFont(&info, fontData, 0)) throwFatal("stb_truetype error occurred!", "Failed to initialize the font");
+    initFont(fontData);
 
-    unsigned char* const textureData = mallocd(sizeof(*textureData) * atlasSize * atlasSize);
+    unsigned char* const textureData = beginPacking(&ctx, atlasSize);
 
-    stbtt_PackBegin(&ctx, textureData, atlasSize, atlasSize, 0, padding, NULL);
-    stbtt_PackFontRange(&ctx, fontData, 0, fontSize, FIRST_CHARACTER, NUM_CHARACTERS, packedChars);
+    packRange(&ctx, fontData, packedChars);
+
     stbtt_PackEnd(&ctx);
 
     const float texture = (float)TexturesHandler_LoadTextureR8(textureData, atlasSize, atlasSize, path);
@@ -94,11 +115,10 @@ void GUI_Init() {
 	stbtt_aligned_quad quad;
 
 	int windowX, windowY;
-        float unusedX, unusedY;
-
-        stbtt_GetPackedQuad(packedChars, atlasSize, atlasSize, i, &unusedX, &unusedY, &quad, 0);
 
 	WH_GetWindowSize(&windowX, &windowY);
+
+	getQuad(packedChars, atlasSize, i, &quad);
 
 	const float xSize = (float)(packedChars[i].x1 - packedChars[i].x0) / (float)windowX;
 	const float ySize = (float)(packedChars[i].y1 - packedChars[i].y0) / (float)windowY;

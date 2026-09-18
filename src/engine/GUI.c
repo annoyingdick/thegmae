@@ -69,7 +69,7 @@ void GUI_Init() {
 
     const int atlasSize = 512, padding = 1;
 
-    const float fontSize = 32;
+    const float fontSize = 64;
 
     stbtt_fontinfo info;
     stbtt_pack_context ctx;
@@ -108,7 +108,7 @@ void GUI_Init() {
 	character->coords[0] = packedChars[i].xoff / (float)windowX;
 	character->coords[1] = (packedChars[i].xoff / (float)windowX) + xSize;
 	character->coords[2] = -ySize - (packedChars[i].yoff / (float)windowY);
-	character->coords[3] = ySize - (packedChars[i].yoff / (float)windowY);
+	character->coords[3] = -packedChars[i].yoff / (float)windowY;
 
 	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1 + texture;
 	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0 + texture;

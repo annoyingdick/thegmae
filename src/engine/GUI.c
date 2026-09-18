@@ -1,5 +1,6 @@
 #include <cglm/types.h>
 #include <cglm/vec2.h>
+#include <cglm/io.h>
 #include "PathHandler.h"
 #include "Mesh.h"
 #include "def.h"
@@ -33,13 +34,9 @@ static void initText(const char* text) {
     QuadIndices indices[textLength];
 
     for (size_t i = 0; i < textLength; i++) {
-	const size_t order[] = {0, 1, 2, 0, 2, 3};
+	const Index3D order[] = {0, 1, 2, 0, 2, 3};
 
-	printf("%llu\n", i);
-
-	const size_t six = i * sizeof(order) / sizeof(*order);
-
-	for (size_t j = 0; j < sizeof(order) / sizeof(*order); j++) indices[i][j] = order[j] + six;
+	for (size_t j = 0; j < sizeof(order) / sizeof(*order); j++) indices[i][j] = order[j] + (i * 4);
 
 	if (*text >= FIRST_CHARACTER && *text < FIRST_CHARACTER + NUM_CHARACTERS) {
 	    Glyph* const glyph = characters + text[i] - FIRST_CHARACTER;
@@ -50,7 +47,10 @@ static void initText(const char* text) {
 	    vertices[i][0][1] = vertices[i][1][1] = glyph->coords[3] + position[1];
 	    vertices[i][2][1] = vertices[i][3][1] = glyph->coords[2] + position[1];
 
-	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + 2);
+	    printf("%f\n", glyph->advance);
+
+	    //for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + 2);
+	    for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
 
 	    position[0] += glyph->advance;
 	}
@@ -58,7 +58,7 @@ static void initText(const char* text) {
 
     Mesh_InitWithData(&mesh, GRAPHICS_PIPELINE_GUI, (MeshInitWithDataInfo){
 	.verticesSize = textLength * 4,
-	.numIndices = textLength * sizeof(*indices) / sizeof(**indices),
+	.numIndices = textLength * sizeof(QuadIndices) / sizeof(**indices),
 	.vertices = vertices[0][0],
 	.indices = indices[0]
     });
@@ -71,7 +71,7 @@ void GUI_Init() {
 
     const int atlasSize = 512, padding = 1;
 
-    const float fontSize = 64;
+    const float fontSize = 32;
 
     stbtt_fontinfo info;
     stbtt_pack_context ctx;
@@ -93,26 +93,29 @@ void GUI_Init() {
     for (int i = 0; i < NUM_CHARACTERS; i++) {
 	stbtt_aligned_quad quad;
 
+	int windowX, windowY;
         float unusedX, unusedY;
 
         stbtt_GetPackedQuad(packedChars, atlasSize, atlasSize, i, &unusedX, &unusedY, &quad, 0);
 
-	const float xSize = (float)(packedChars[i].x1 - packedChars[i].x0);
-	const float ySize = (float)(packedChars[i].y1 - packedChars[i].y0);
+	WH_GetWindowSize(&windowX, &windowY);
+
+	const float xSize = (float)(packedChars[i].x1 - packedChars[i].x0) / (float)windowX;
+	const float ySize = (float)(packedChars[i].y1 - packedChars[i].y0) / (float)windowY;
 
 	Glyph* const character = characters + i;
 
-	character->coords[0] = packedChars[i].xoff;
-	character->coords[1] = packedChars[i].xoff + xSize;
-	character->coords[2] = -ySize - packedChars[i].yoff;
-	character->coords[3] = ySize - packedChars[i].yoff;
+	character->coords[0] = packedChars[i].xoff / (float)windowX;
+	character->coords[1] = (packedChars[i].xoff / (float)windowX) + xSize;
+	character->coords[2] = -ySize - (packedChars[i].yoff / (float)windowY);
+	character->coords[3] = ySize - (packedChars[i].yoff / (float)windowY);
 
 	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1;
 	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0;
 	character->texCoords[1][0] = character->texCoords[2][0] = quad.s0;
 	character->texCoords[2][1] = character->texCoords[3][1] = quad.t1;
 	
-	character->advance = packedChars[i].xadvance;
+	character->advance = packedChars[i].xadvance / (float)windowX;
     }
 
     free(fontData);

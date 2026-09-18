@@ -115,8 +115,9 @@ void GM_Init() {
 void GM_Mouse3(const NSC coords) {
     //const float rayDistance = 100;
 
-    ndc[0] = (coords[0] * 2) - 1;
-    ndc[1] = 1 - (coords[1] * 2);
+    memcpy(ndc, coords, sizeof(ndc));
+
+    TO_NDC(ndc);
 
     mouse3 = true;
 

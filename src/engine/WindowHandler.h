@@ -9,6 +9,8 @@
 
 #define FIXED_LOOP_DELTA_TIME_S ((float)FIXED_LOOP_DELTA_TIME_NS / NANOSECONDS_IN_ONE_SECOND)
 
+#define TO_NDC(x) x[0] = (x[0] * 2) - 1; x[1] = 1 - (x[1] * 2)
+
 typedef uint64_t Time;
 typedef uint8_t WHLoopResultCode;
 

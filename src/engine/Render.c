@@ -398,6 +398,7 @@ void R_Loop(const float interp) {
 	pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_SKINNED]
     ));
     PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_SKINNED, readNormalIndex);
+    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_GUI, readNormalIndex);
 
     PipStatic_Run(&pipStatic);
 

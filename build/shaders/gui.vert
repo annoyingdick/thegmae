@@ -29,8 +29,7 @@ out vec2 texcoord;
 
 void main() {
     const vec4 pos = vec4(verts[gl_VertexID].position[0], verts[gl_VertexID].position[1], 0, 1.0);
-    const uint instanceId = usedInstancesIds[commands[gl_DrawID].baseInstance + gl_InstanceID];
 
     texcoord = vec2(verts[gl_VertexID].texcoord[0], verts[gl_VertexID].texcoord[1]);
-    gl_Position = instancesData[instanceId] * pos;
+    gl_Position = pos;
 }

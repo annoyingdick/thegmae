@@ -12,10 +12,9 @@
 
 //initalization order:
 
-//0: WindowHandler, PathHandler, InstancesHandler, PhysicsSimulationHandler, NavigationHandler, TaskManager and GUI
-//are independent
+//0: WindowHandler, PathHandler, InstancesHandler, PhysicsSimulationHandler, NavigationHandler, TaskManager are independent
 //1: Render depends on WH -> WH creates a graphics api context (OpenGL) that is used by Render
-//2: WindowHandler (somewhat) and CharactersHandler depend on Render -> WH inits DebugGuiHandler which depends on Render
+//2: WindowHandler (somewhat), CharactersHandler and GUI depend on Render -> WH inits DebugGuiHandler which depends on Render
 //3: Game code should be initialized the last because i said so
 
 //FixedLoop functions are called every 64th of a second or whatever tickrate is. They are used for deterministic stuff. 
@@ -40,11 +39,11 @@ int main(const int argc, const char* const argv[const]) {
 	PSH_Init();
 	NH_Init();
 	TM_Init();
-	GUI_Init();
 
 	R_Init();
 
 	CH_Init();
+	GUI_Init();
 	WH_R_PostInit();
 
 	GM_Init();

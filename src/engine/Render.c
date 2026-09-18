@@ -16,6 +16,8 @@
 
 #define INIT_NUM_INDICES 2
 
+#define CHECKINIT(x) if (!indicesArena.size) throwFatal("Render is not initialized!", x)
+
 //Compiler at any moment can rearrange any of the variables below so be careful!
 //These buffers can be updated by CPU (GL_DYNAMIC_STORAGE)
 static Arena indicesArena;
@@ -277,6 +279,8 @@ void R_NDCtoDirection(const NDC coords, float* const dest) {
     glm_mat4_mulv3(inv, (vec3){coords[0], coords[1], 1}, 1, dest);
 }
 void R_UploadIndices(Region* const outRegion, const RegionSize count, const Index3D indices[]) {
+    CHECKINIT("Tried to upload indices");
+
     const RegionSize oldSize = indicesArena.size;
 
     RegionSize newSize;

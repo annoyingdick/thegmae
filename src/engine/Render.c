@@ -194,7 +194,7 @@ static void initPipelines() {
 	PipDynamic_Init(pipelines + i, (PipInitInfo){
 	    .mainShaderInfo = {
 		.vertexShaderSourceFileName = vertexShaderNames[i],
-		.fragmentShaderSourceFileName = "normal.frag"
+		.fragmentShaderSourceFileName = i == GRAPHICS_PIPELINE_GUI ? "gui.frag" : "normal.frag"
 	    },
 	    .processInstancesShaderInfo = {piShaderNames[i]},
 
@@ -373,7 +373,10 @@ void R_Loop(const float interp) {
     
     //reset default bindings
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
     glDepthFunc(GL_LESS);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+
     glClear(GL_COLOR_BUFFER_BIT + GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(globalVao);
 
@@ -398,9 +401,11 @@ void R_Loop(const float interp) {
 	pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_SKINNED]
     ));
     PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_SKINNED, readNormalIndex);
-    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_GUI, readNormalIndex);
 
     PipStatic_Run(&pipStatic);
+
+    glDepthFunc(GL_ALWAYS);
+    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_GUI, readNormalIndex);
 
     renderSyncs[readNormalIndex] = getSync();
 

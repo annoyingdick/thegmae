@@ -12,18 +12,18 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define CHECKINIT(x) if (!texturesArena.size) throwFatal("R and TexturesHandler are not initialized!", x)
+
 #define INIT_NUM_TASKS 2
 
 #define MAX_TEXTURE_SIZE 4096
 #define LOAD_SIZE (GLsizeiptr)(4 * MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE)
 #define UPLOADBATCH_SIZE (512 * 512)
 
-#define X(type, name, typeenum) static type name;
-PUBVARS_TexturesHandler
-#undef X
-#define X(type, name, typeenum) &name,
-static void* const pub[] = {PUBVARS_TexturesHandler};
-#undef X
+static Arena texturesArena, tasksArena;
+
+static TextureID nextTextureId;
+static TaskLoadTextureID nextTaskId;
 
 static GLuint* textures;
 static TextureID* numUsages;
@@ -36,6 +36,31 @@ static void** bufferPointers;
 
 static UploadBatchID getNumBatchesForSize(const int w, const int h) {
     return (w * h / UPLOADBATCH_SIZE) + (w * h % UPLOADBATCH_SIZE > 0) + 1;
+}
+static TextureID createTexture(const char name[const]) {
+    Region region;
+
+    RegionSize newSize;
+
+    const RegionSize oldSize = texturesArena.size;
+
+    if (Arena_RequestRegion(&texturesArena, &region, &newSize, 1)) ++nextTextureId;
+    if (newSize) {
+	reallocarr(textures, newSize);
+	reallocarr(numUsages, newSize);
+	reallocarr(bindedTasks, newSize);
+	reallocarr(names, newSize);
+
+	R_ResizeTextureHandlesBuffer(oldSize, newSize);
+    }
+
+    numUsages[region.position] = 1;
+
+    names[region.position] = strdup(name);
+
+    glCreateTextures(GL_TEXTURE_2D, 1, textures + region.position);
+
+    return region.position;
 }
 static bool areNamesSame(const TextureID id, const char name[]) {
     if (!strcmp(name, names[id])) {
@@ -53,15 +78,19 @@ static bool isFenceSignaled(GLsync fence) {
 
     return buf == GL_SIGNALED;
 }
+static void allocateTextureGL(const GLuint texture, const GLenum format, const int width, const int height) {
+    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureStorage2D(texture, 1, format, width, height);
+}
 //returns true if you won't need to upload batches anymore
 static bool uploadBatch(TaskLoadTexture* const task) {
     const GLuint glTex = textures[task->textureId];
 	
     if (!task->uploadSync) {
-	glTextureParameteri(glTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureParameteri(glTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTextureStorage2D(glTex, 1, GL_RGBA8, task->width, task->height);
 	GL_CHECK(glFlushMappedNamedBufferRange(buffers[task->loadId], 0, (GLsizeiptr)task->width * task->height * 4));
+
+	allocateTextureGL(glTex, GL_RGBA8, task->width, task->height);
 
 	task->uploadSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     }
@@ -177,36 +206,22 @@ void TexturesHandler_Init() {
 GLuint TexturesHandler_GetGLTexture(const TextureID id) {
     return textures[id];
 }
-TextureID TexturesHandler_BeginLoadingTask(const char name[const restrict], const char path[const restrict]) {
-    if (!texturesArena.size) throwFatal("R and TexturesHandler are not initialized!", "Tried to begin texture loading task");
+TextureID TexturesHandler_BeginLoadingTask(const char name[], const char path[const restrict]) {
+    CHECKINIT("Tried to begin texture loading task");
+
+    name = name ? name : path;
 
     //does this texture already exist?
     for (TextureID i = 0; i < nextTextureId; i++) {
-	if (isTextureValid(i) && areNamesSame(i, name ? name : path)) return i;
+	if (isTextureValid(i) && areNamesSame(i, name)) return i;
     }
 
-    const RegionSize oldTexturesSize = texturesArena.size;
-
-    Region idRegion, taskRegion;
+    Region taskRegion;
     RegionSize newSize;
 
-    if (Arena_RequestRegion(&texturesArena, &idRegion, &newSize, 1)) ++nextTextureId;
-    if (newSize) {
-	reallocarr(textures, newSize);
-	reallocarr(numUsages, newSize);
-	reallocarr(bindedTasks, newSize);
-	reallocarr(names, newSize);
-
-	R_ResizeTextureHandlesBuffer(oldTexturesSize, newSize);
-    }
-
-    numUsages[idRegion.position] = 1;
-
-    names[idRegion.position] = strdup(name ? name : path);
-
-    glCreateTextures(GL_TEXTURE_2D, 1, textures + idRegion.position);
-
     const RegionSize oldTasksSize = tasksArena.size;
+
+    const TextureID id = createTexture(name);
 
     if (Arena_RequestRegion(&tasksArena, &taskRegion, &newSize, 1)) ++nextTaskId;
     if (newSize) {
@@ -219,17 +234,30 @@ TextureID TexturesHandler_BeginLoadingTask(const char name[const restrict], cons
 
     TaskLoadTexture* const task = mallocd(sizeof(*task));
 
-    bindedTasks[idRegion.position] = task;
+    bindedTasks[id] = task;
 
     tasks[taskRegion.position] = task;
 
-    task->textureId = idRegion.position;
+    task->textureId = id;
     task->loadId = taskRegion.position;
     task->bufferPointer = bufferPointers[taskRegion.position];
 
     createLoadTask(task, path);
 
-    return idRegion.position;
+    return id;
+}
+TextureID TexturesHandler_LoadTextureR8(
+    const unsigned char data[const], const int width, const int height, const char name[const]
+) {
+    const TextureID id = createTexture(name);
+
+    allocateTextureGL(textures[id], GL_R8, width, height);
+
+    glTextureSubImage2D(textures[id], 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_BYTE, data);
+
+    R_ShowTexture(id);
+
+    return id;
 }
 void TexturesHandler_UnloadTexture(const TextureID id) {
     numUsages[id]--;
@@ -284,8 +312,4 @@ void TexturesHandler_Loop() {
 	    tasks[i] = NULL;
 	}
     }
-}
-
-void* const* TexturesHandler_GetPublicVars() {
-    return pub;
 }

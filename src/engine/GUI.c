@@ -114,28 +114,27 @@ void GUI_Init() {
     for (int i = 0; i < NUM_CHARACTERS; i++) {
 	stbtt_aligned_quad quad;
 
-	int windowX, windowY;
+	float windowX, windowY;
 
 	WH_GetWindowSize(&windowX, &windowY);
 
 	getQuad(packedChars, atlasSize, i, &quad);
 
-	const float xSize = (float)(packedChars[i].x1 - packedChars[i].x0) / (float)windowX;
-	const float ySize = (float)(packedChars[i].y1 - packedChars[i].y0) / (float)windowY;
+	const float leftX = packedChars[i].xoff / windowX, topY = -packedChars[i].yoff / windowY;
 
 	Glyph* const character = characters + i;
 
-	character->coords[0] = packedChars[i].xoff / (float)windowX;
-	character->coords[1] = (packedChars[i].xoff / (float)windowX) + xSize;
-	character->coords[2] = -ySize - (packedChars[i].yoff / (float)windowY);
-	character->coords[3] = -packedChars[i].yoff / (float)windowY;
+	character->coords[0] = leftX;
+	character->coords[1] = leftX + ((float)(packedChars[i].x1 - packedChars[i].x0) / windowX);
+	character->coords[2] = topY - ((float)(packedChars[i].y1 - packedChars[i].y0) / windowY);
+	character->coords[3] = topY;
 
 	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1 + texture;
 	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0 + texture;
 	character->texCoords[1][0] = character->texCoords[2][0] = quad.s0 + texture;
 	character->texCoords[2][1] = character->texCoords[3][1] = quad.t1 + texture;
 	
-	character->advance = packedChars[i].xadvance / (float)windowX;
+	character->advance = packedChars[i].xadvance / windowX;
     }
 
     free(fontData);

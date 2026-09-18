@@ -32,7 +32,7 @@ enum {
 
 void WH_Init();
 void WH_R_PostInit();
-void WH_GetWindowSize(int* width, int* height);
+void WH_GetWindowSize(float* width, float* height);
 float WH_GetDeltaTime();
 bool WH_IsEditorOn();
 void WH_ThrowError(const char title[], const char message[]);

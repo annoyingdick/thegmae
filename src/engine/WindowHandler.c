@@ -190,8 +190,13 @@ void WH_Init() {
 void WH_R_PostInit() {
     DGH_Init(window);
 }
-void WH_GetWindowSize(int* const restrict width, int* const restrict height) {
-    SDL_GetWindowSizeInPixels(window, width, height);
+void WH_GetWindowSize(float* const width, float* const height) {
+    int w, h;
+
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+
+    *width = (float)w;
+    *height = (float)h;
 }
 float WH_GetDeltaTime() {
     return (float)deltaTime / NANOSECONDS_IN_ONE_SECOND;

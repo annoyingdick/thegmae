@@ -112,7 +112,7 @@ void EM_MouseMotion(const float xrel, const float yrel) {
     }
 
     if (notEmpty) {
-	int width, height;
+	float width, height;
 
 	mat3 pv3x3inverse;
 	vec3 translation;

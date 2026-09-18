@@ -54,7 +54,7 @@ void* PH_OpenFile(const char relPathStr[const], const PathStringSize relPathStrS
     fread(string, fileSize, 1, file);
     fclose(file);
 
-    *outFileSize = fileSize;
+    if (outFileSize) *outFileSize = fileSize;
 
     return string;
 }

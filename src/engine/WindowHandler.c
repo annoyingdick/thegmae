@@ -8,6 +8,7 @@
 #include "game/GameMain.h"
 #include "editor/EditorMain.h"
 #include "DebugGuiHandler.h"
+#include "GUI.h"
 #include "WindowHandler.h"
 
 #define THROWERROR(t, m) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, t, m, window); exit(EXIT_FAILURE);
@@ -33,6 +34,7 @@ static WHLoopResultCode pollEvents() {
 	    return WH_LOOP_RESULT_QUIT;
 	case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 	    R_SetViewportSize(event.window.data1, event.window.data2);
+	    GUI_UpdateTexts();
 
 	    break;
 	case SDL_EVENT_KEY_DOWN:

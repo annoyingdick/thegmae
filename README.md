@@ -7,7 +7,7 @@ These libraries were used:
 * GLEW-cmake: https://github.com/Perlmint/glew-cmake/blob/master/LICENSE.txt
 * CGLM under MIT license: https://github.com/recp/cglm/blob/master/LICENSE
 * Nuklear (A: MIT): https://github.com/Immediate-Mode-UI/Nuklear/blob/master/LICENSE
-* stb_image.h from stb (A: MIT): https://github.com/nothings/stb/blob/master/LICENSE
+* stb_image.h and stb_truetype.h from stb (A: MIT): https://github.com/nothings/stb/blob/master/LICENSE
 * cgltf under MIT license: https://github.com/jkuhlmann/cgltf/blob/master/LICENSE
 * khashl.h from klib under MIT license: https://github.com/attractivechaos/klib/blob/master/LICENSE.txt
 

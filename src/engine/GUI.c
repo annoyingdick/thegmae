@@ -8,10 +8,13 @@
 //it's implementation is already inside nuklear.h so don't care
 #include <stb_truetype.h>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
 #define FIRST_CHARACTER ' '
 #define NUM_CHARACTERS (0x7F - FIRST_CHARACTER)
 
-#define PADDING 10
+#define OUTLINE 7
 
 typedef Index3D QuadIndices[3 + 3];
 typedef vec4 Quad[4]; //two floats for position and other two for tex. coords
@@ -27,10 +30,23 @@ static Glyph characters[NUM_CHARACTERS];
 
 static Mesh testText;
 
+static unsigned char isNeighbourWhite(
+    const unsigned char pixels[const], const int index, const int x, const int y, const int atlasSize
+) {
+    if ((x > 0 && index % atlasSize < atlasSize - x) || (x < 0 && index % atlasSize > -x - 1)) {
+	if ((y > 0 && index < (atlasSize - y) * atlasSize) || (y < 0 && index >= atlasSize * -y)) {
+	    const int i = (index + x + (y * atlasSize)) * 2;
+
+	    return pixels[i] ? pixels[i + 1] : 0;
+	}
+    }
+
+    return 0;
+}
 static unsigned char* beginPacking(stbtt_pack_context* const context, const int size) {
     unsigned char* const textureData = mallocd(2LLU * size * size);
 
-    stbtt_PackBegin(context, textureData, size, size, 0, PADDING + 1, NULL);
+    stbtt_PackBegin(context, textureData, size, size, 0, OUTLINE * 2 - 1, NULL);
 
     return textureData;
 }
@@ -114,33 +130,45 @@ static void initGlyphs() {
 
     unsigned char* const textureData = pack(atlasSize, fontData, packedChars);
 
-    for (int i = (atlasSize * atlasSize) - 1; i > 0; i--) textureData[i + i] = textureData[i];
+    for (int i = (atlasSize * atlasSize) - 1; i > 0; i--) textureData[i * 2LL] = textureData[(i * 2) + 1] = textureData[i];
 
+    /*
     for (int i = 0; i < atlasSize * atlasSize; i++) {
 	const int two = i * 2;
 
 	textureData[two + 1] = textureData[two] ? UINT8_MAX : 0;
     }
+    */
 
-    /*
     for (int i = 0; i < atlasSize * atlasSize; i++) {
 	//textureData[i * 2 + 1] = 255;
 	const int two = i * 2;
 
-	if (textureData[two]) textureData[two + 1] = UINT8_MAX;
+	if (textureData[two]) {
+	    textureData[two + 1] = textureData[two] * textureData[two] / UINT8_MAX;
+	    textureData[two] = UINT8_MAX;
+	}
 	else {
-	    if (
-		(i % atlasSize > 0 && textureData[(i - 1) * 2LL]) ||
-		(i % atlasSize < atlasSize - 1 && textureData[(i + 1) * 2LL]) ||
-		(i >= atlasSize && textureData[(i - atlasSize) * 2LL]) ||
-		(i < atlasSize * (atlasSize - 1) && textureData[(i + atlasSize) * 2LL])
-	    ) {
-		textureData[two] = UINT8_MAX;
+	    unsigned char color;
+
+	    color = 0;
+
+	    for (int x = -OUTLINE; x <= OUTLINE; x++) {
+		for (int y = -OUTLINE; y <= OUTLINE; y++) {
+		    if (x * x + y * y < OUTLINE * OUTLINE) {
+			const unsigned char c = isNeighbourWhite(textureData, i, x, y, atlasSize);
+
+			if (c > color) color = c;
+		    }
+		}
+	    }
+
+	    if (color > 0) {
+		textureData[two] = color;
 		textureData[two + 1] = 0;
 	    }
 	}
     }
-    */
 
     const float texture = (float)TexturesHandler_LoadTextureRG88(textureData, atlasSize, atlasSize, path);
 
@@ -149,22 +177,33 @@ static void initGlyphs() {
 
 	getQuad(packedChars, atlasSize, i, &quad);
 
-	const float leftX = packedChars[i].xoff, topY = -packedChars[i].yoff, pad = PADDING / (float)atlasSize;
+	const float leftX = packedChars[i].xoff, topY = -packedChars[i].yoff, pad = (OUTLINE - 1) / (float)atlasSize;
 
 	Glyph* const character = characters + i;
 
-	character->coords[0] = leftX - PADDING;
-	character->coords[1] = leftX + (float)(packedChars[i].x1 - packedChars[i].x0) + PADDING;
-	character->coords[2] = topY - (float)(packedChars[i].y1 - packedChars[i].y0) - PADDING;
-	character->coords[3] = topY + PADDING;
+	character->coords[0] = leftX - OUTLINE;
+	character->coords[1] = leftX + (float)(packedChars[i].x1 - packedChars[i].x0) + OUTLINE;
+	character->coords[2] = topY - (float)(packedChars[i].y1 - packedChars[i].y0) - OUTLINE;
+	character->coords[3] = topY + OUTLINE;
 
 	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1 + texture + pad;
 	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0 + texture - pad;
 	character->texCoords[1][0] = character->texCoords[2][0] = quad.s0 + texture - pad;
 	character->texCoords[2][1] = character->texCoords[3][1] = quad.t1 + texture + pad;
 	
-	character->advance = packedChars[i].xadvance + 2 * PADDING;
+	character->advance = packedChars[i].xadvance + (2 * OUTLINE);
     }
+
+    for (int i = 0; i < atlasSize * atlasSize; i++) {
+	const int two = i * 2;
+
+	const unsigned char a = textureData[two];
+
+	textureData[two] = textureData[two + 1];
+	textureData[two + 1] = a;
+    }
+
+    stbi_write_png("out.png", atlasSize, atlasSize, 2, textureData, atlasSize * 2);
 
     free(fontData);
     free(textureData);

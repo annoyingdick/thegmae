@@ -246,14 +246,14 @@ TextureID TexturesHandler_BeginLoadingTask(const char name[], const char path[co
 
     return id;
 }
-TextureID TexturesHandler_LoadTextureR8(
+TextureID TexturesHandler_LoadTextureRG88(
     const unsigned char data[const], const int width, const int height, const char name[const]
 ) {
     const TextureID id = createTexture(name);
 
-    allocateTextureGL(textures[id], GL_R8, width, height);
+    allocateTextureGL(textures[id], GL_RG8, width, height);
 
-    glTextureSubImage2D(textures[id], 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_BYTE, data);
+    glTextureSubImage2D(textures[id], 0, 0, 0, width, height, GL_RG, GL_UNSIGNED_BYTE, data);
 
     R_ShowTexture(id);
 

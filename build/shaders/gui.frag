@@ -13,5 +13,7 @@ out vec4 finalcolor;
 void main() {
     const vec2 normTexCoord = vec2(texcoord.x - floor(texcoord.x), texcoord.y);
 
-    finalcolor = vec4(texture(textures[uint(texcoord.x)], normTexCoord).r);
+    finalcolor = vec4(
+	vec3(texture(textures[uint(texcoord.x)], normTexCoord).g), texture(textures[uint(texcoord.x)], normTexCoord).r
+    );
 }

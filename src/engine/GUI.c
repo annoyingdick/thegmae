@@ -11,6 +11,8 @@
 #define FIRST_CHARACTER ' '
 #define NUM_CHARACTERS (0x7F - FIRST_CHARACTER)
 
+#define PADDING 10
+
 typedef Index3D QuadIndices[3 + 3];
 typedef vec4 Quad[4]; //two floats for position and other two for tex. coords
 
@@ -26,11 +28,9 @@ static Glyph characters[NUM_CHARACTERS];
 static Mesh testText;
 
 static unsigned char* beginPacking(stbtt_pack_context* const context, const int size) {
-    const int padding = 1;
+    unsigned char* const textureData = mallocd(2LLU * size * size);
 
-    unsigned char* const textureData = mallocd(sizeof(*textureData) * size * size);
-
-    stbtt_PackBegin(context, textureData, size, size, 0, padding, NULL);
+    stbtt_PackBegin(context, textureData, size, size, 0, PADDING + 1, NULL);
 
     return textureData;
 }
@@ -114,28 +114,56 @@ static void initGlyphs() {
 
     unsigned char* const textureData = pack(atlasSize, fontData, packedChars);
 
-    const float texture = (float)TexturesHandler_LoadTextureR8(textureData, atlasSize, atlasSize, path);
+    for (int i = (atlasSize * atlasSize) - 1; i > 0; i--) textureData[i + i] = textureData[i];
+
+    for (int i = 0; i < atlasSize * atlasSize; i++) {
+	const int two = i * 2;
+
+	textureData[two + 1] = textureData[two] ? UINT8_MAX : 0;
+    }
+
+    /*
+    for (int i = 0; i < atlasSize * atlasSize; i++) {
+	//textureData[i * 2 + 1] = 255;
+	const int two = i * 2;
+
+	if (textureData[two]) textureData[two + 1] = UINT8_MAX;
+	else {
+	    if (
+		(i % atlasSize > 0 && textureData[(i - 1) * 2LL]) ||
+		(i % atlasSize < atlasSize - 1 && textureData[(i + 1) * 2LL]) ||
+		(i >= atlasSize && textureData[(i - atlasSize) * 2LL]) ||
+		(i < atlasSize * (atlasSize - 1) && textureData[(i + atlasSize) * 2LL])
+	    ) {
+		textureData[two] = UINT8_MAX;
+		textureData[two + 1] = 0;
+	    }
+	}
+    }
+    */
+
+    const float texture = (float)TexturesHandler_LoadTextureRG88(textureData, atlasSize, atlasSize, path);
 
     for (int i = 0; i < NUM_CHARACTERS; i++) {
 	stbtt_aligned_quad quad;
 
 	getQuad(packedChars, atlasSize, i, &quad);
 
-	const float leftX = packedChars[i].xoff, topY = -packedChars[i].yoff;
+	const float leftX = packedChars[i].xoff, topY = -packedChars[i].yoff, pad = PADDING / (float)atlasSize;
 
 	Glyph* const character = characters + i;
 
-	character->coords[0] = leftX;
-	character->coords[1] = leftX + (float)(packedChars[i].x1 - packedChars[i].x0);
-	character->coords[2] = topY - (float)(packedChars[i].y1 - packedChars[i].y0);
-	character->coords[3] = topY;
+	character->coords[0] = leftX - PADDING;
+	character->coords[1] = leftX + (float)(packedChars[i].x1 - packedChars[i].x0) + PADDING;
+	character->coords[2] = topY - (float)(packedChars[i].y1 - packedChars[i].y0) - PADDING;
+	character->coords[3] = topY + PADDING;
 
-	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1 + texture;
-	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0 + texture;
-	character->texCoords[1][0] = character->texCoords[2][0] = quad.s0 + texture;
-	character->texCoords[2][1] = character->texCoords[3][1] = quad.t1 + texture;
+	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1 + texture + pad;
+	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0 + texture - pad;
+	character->texCoords[1][0] = character->texCoords[2][0] = quad.s0 + texture - pad;
+	character->texCoords[2][1] = character->texCoords[3][1] = quad.t1 + texture + pad;
 	
-	character->advance = packedChars[i].xadvance;
+	character->advance = packedChars[i].xadvance + 2 * PADDING;
     }
 
     free(fontData);

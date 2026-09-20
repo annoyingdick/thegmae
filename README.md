@@ -15,4 +15,5 @@ The assets:
 * CC-BY-4.0: https://creativecommons.org/licenses/by/4.0
   * MosquitoInAmber: https://sketchfab.com/3d-models/real-time-refraction-demo-mosquito-in-amber-37233d6ed84844fea1ebe88069ea58d1
   * Deagle: https://sketchfab.com/3d-models/desert-eagle-4be942b4b2004a6c9cc47e2961b8e6fd
-* Character and it's animations are from https://www.mixamo.com
+* The character model and it's animations are from https://www.mixamo.com
+* The font Arimo under OFL license: https://fonts.google.com/specimen/Arimo/license 

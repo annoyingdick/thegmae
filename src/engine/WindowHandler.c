@@ -6,7 +6,6 @@
 #include "Render.h"
 #include "Camera.h"
 #include "game/GameMain.h"
-#include "editor/EditorMain.h"
 #include "DebugGuiHandler.h"
 #include "GUI.h"
 #include "WindowHandler.h"
@@ -50,7 +49,6 @@ static WHLoopResultCode pollEvents() {
 		break;
 	    default:
 		GM_KeyDown(event.key.key);
-		EM_KeyDown(event.key.key);
 	    }
 
 	    break;
@@ -99,8 +97,6 @@ static WHLoopResultCode pollEvents() {
 	    if (!isMouseFree) {
 		Camera_MouseMotion(event.motion.xrel, event.motion.yrel);
 	    }
-
-	    EM_MouseMotion(event.motion.xrel, event.motion.yrel);
 
 	    break;
 	}

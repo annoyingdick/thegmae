@@ -3,6 +3,7 @@
 
 #include <cglm/types.h>
 #include <cglm/vec2.h>
+#include <stb_image.h>
 #include "PathHandler.h"
 #include "Mesh.h"
 #include "TexturesHandler.h"
@@ -19,8 +20,11 @@ typedef struct {
 
 //static Mesh testText;
 
-//static Glyph* characters;
+static Glyph* characters;
 
+static int tokenStrCmp(const char js[const], const char str[const], const jsmntok_t* const token) {
+    return strncmp(js + token->start, str, token->end - token->start);
+}
 /*
 static void initText(Mesh* const mesh, const char text[const]) {
     const size_t textLength = strlen(text);
@@ -64,22 +68,106 @@ static void initText(Mesh* const mesh, const char text[const]) {
     Mesh_NewInstance(mesh);
 }
 */
+static void assertChar(const char character) {
+    if (!character) {
+	const char src[] = "lol";
+	//const char src[] = "This character json object has an incorrect order of fields. Character: ";
+
+	char str[sizeof(src) + 1];
+
+	strcpy(str, src);
+
+	str[sizeof(src) - 1] = character;
+	str[sizeof(src)] = '\0';
+
+	throwFatal("GUI error occurred!", str);
+    }
+}
+static void checkJSMN(const int ret, const char path[const]) {
+    switch (ret) {
+    case JSMN_ERROR_INVAL:
+	throwFatal("JSMN error: bad token", path);
+	break;
+    case JSMN_ERROR_NOMEM:
+	throwFatal("JSMN error: string too large", path);
+	break;
+    case JSMN_ERROR_PART:
+	throwFatal("JSMN error: string too short", path);
+    }
+}
 static void initGlyphs() {
     const char path[] = "fonts\\bold.json";
 
     jsmn_parser parser;
 
     size_t fileSize;
+    int width, height;
+    char character, firstChar;
 
     char* const js = PH_OpenFile(path, sizeof(path), &fileSize);
 
+    stbi_uc* const atlas = stbi_load("fonts\\bold.png", &width, &height, NULL, 3);
+
     jsmn_init(&parser);
 
-    const size_t numTokens = jsmn_parse(&parser, js, fileSize - 1, NULL, 0);
+    const int numTokens = jsmn_parse(&parser, js, fileSize - 1, NULL, 0);
+
+    checkJSMN(numTokens, path);
+
+    //reset parser
+    jsmn_init(&parser);
 
     jsmntok_t* const tokens = mallocd(numTokens * sizeof(*tokens));
 
-    jsmn_parse(&parser, js, fileSize - 1, tokens, numTokens);
+    checkJSMN(jsmn_parse(&parser, js, fileSize - 1, tokens, numTokens), path);
+
+    character = 0;
+
+    //count characters
+    for (const jsmntok_t* token = tokens; token < tokens + numTokens;) {
+	if (token->type == JSMN_STRING && !tokenStrCmp(js, "unicode", token)) {
+	    token++;
+
+	    const char c = (char)atoi(js + token->start);
+
+	    if (!character) firstChar = c;
+
+	    character = c;
+
+	    token += 2;
+	}
+	else token++;
+    }
+
+    if (!character) throwFatal("There are no glyphs in this JSON!", path);
+
+    mallocarr(characters, character - firstChar + 1);
+
+    character = 0;
+
+    for (const jsmntok_t* token = tokens; token < tokens + numTokens;) {
+	if (token->type == JSMN_STRING) {
+	    if (!tokenStrCmp(js, "unicode", token)) {
+		token++;
+
+		const char c = (char)atoi(js + token->start);
+
+		if (!character) firstChar = c;
+
+		character = c;
+	    }
+	    else if (!tokenStrCmp(js, "advance", token)) {
+		assertChar(character);
+
+		token++;
+
+		//measured in em
+		characters[character - firstChar].advance = strtof(js + token->start, NULL);
+	    }
+	}
+
+	token++;
+    }
 
     //const float texture = (float)TexturesHandler_LoadTextureRGB888(textureData, atlasSize, atlasSize, path);
 
@@ -109,6 +197,8 @@ static void initGlyphs() {
 
     free(js);
     free(tokens);
+
+    stbi_image_free(atlas);
 }
 
 void GUI_Init() {

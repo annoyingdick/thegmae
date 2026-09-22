@@ -79,8 +79,8 @@ static bool isFenceSignaled(GLsync fence) {
     return buf == GL_SIGNALED;
 }
 static void allocateTextureGL(const GLuint texture, const GLenum format, const int width, const int height) {
-    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureStorage2D(texture, 1, format, width, height);
 }
 //returns true if you won't need to upload batches anymore
@@ -246,14 +246,14 @@ TextureID TexturesHandler_BeginLoadingTask(const char name[], const char path[co
 
     return id;
 }
-TextureID TexturesHandler_LoadTextureRG88(
+TextureID TexturesHandler_LoadTextureRGB888(
     const unsigned char data[const], const int width, const int height, const char name[const]
 ) {
     const TextureID id = createTexture(name);
 
-    allocateTextureGL(textures[id], GL_RG8, width, height);
+    allocateTextureGL(textures[id], GL_RGB8, width, height);
 
-    glTextureSubImage2D(textures[id], 0, 0, 0, width, height, GL_RG, GL_UNSIGNED_BYTE, data);
+    glTextureSubImage2D(textures[id], 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
 
     R_ShowTexture(id);
 

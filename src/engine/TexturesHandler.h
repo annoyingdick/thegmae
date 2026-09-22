@@ -11,7 +11,7 @@
 void TexturesHandler_Init();
 GLuint TexturesHandler_GetGLTexture(TextureID id);
 TextureID TexturesHandler_BeginLoadingTask(const char name[], const char path[]);
-TextureID TexturesHandler_LoadTextureRG88(const unsigned char data[], int width, int height, const char name[]);
+TextureID TexturesHandler_LoadTextureRGB888(const unsigned char data[], int width, int height, const char name[]);
 void TexturesHandler_UnloadTexture(TextureID id);
 //returns true when this texture gets allocated storage
 void TexturesHandler_Quit();

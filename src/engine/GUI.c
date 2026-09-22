@@ -12,20 +12,45 @@
 typedef Index3D QuadIndices[3 + 3];
 typedef vec4 Quad[4]; //two floats for position and other two for tex. coords
 
+enum {
+    LEFT,
+    BOTTOM,
+    RIGHT,
+    TOP,
+    INVALID_SIDE
+};
+
 typedef struct {
-    vec2 size;
+    float coords[INVALID_SIDE];
     vec2 texCoords[4];
     float advance;
 } Glyph;
 
-//static Mesh testText;
+static Mesh testText;
+
+static char firstChar;
 
 static Glyph* characters;
 
-static int tokenStrCmp(const char js[const], const char str[const], const jsmntok_t* const token) {
-    return strncmp(js + token->start, str, token->end - token->start);
+static ptrdiff_t isTokenCoord(const char js[const], const jsmntok_t* const token) {
+    if (token->type == JSMN_STRING) {
+	const char* const names[] = {
+	    [LEFT] = "left", 
+	    [BOTTOM] = "bottom", 
+	    [RIGHT] = "right", 
+	    [TOP] = "top"
+	};
+
+	nforeach (const char* const* const name, names)
+	    if (!strncmp(js + token->start, *name, token->end - token->start)) return name - names;
+	forend
+    }
+
+    return INVALID_SIDE;
 }
-/*
+static int tokenStrCmp(const char js[const], const char str[const], const jsmntok_t* const token) {
+    return token->type == JSMN_STRING ? strncmp(js + token->start, str, token->end - token->start) : 1;
+}
 static void initText(Mesh* const mesh, const char text[const]) {
     const size_t textLength = strlen(text);
 
@@ -38,21 +63,24 @@ static void initText(Mesh* const mesh, const char text[const]) {
 
     WH_GetWindowSize(&windowX, &windowY);
 
+    windowX /= 200;
+    windowY /= 200;
+
     for (size_t i = 0; i < textLength; i++) {
 	const Index3D order[] = {0, 1, 2, 0, 2, 3};
 
-	for (size_t j = 0; j < sizeof(order) / sizeof(*order); j++) indices[i][j] = order[j] + (i * 4);
+	for (size_t j = 0; j < ARRAYSIZE(order); j++) indices[i][j] = order[j] + (i * 4);
 
-	if (*text >= FIRST_CHARACTER && *text < FIRST_CHARACTER + NUM_CHARACTERS) {
-	    Glyph* const glyph = characters + text[i] - FIRST_CHARACTER;
+	if (text[i] >= firstChar) {
+	    Glyph* const glyph = characters + text[i] - firstChar;
 
-	    vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[1] / windowX) + position[0];
-	    vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[0] / windowX) + position[0];
+	    vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[RIGHT] / windowX) + position[0];
+	    vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[LEFT] / windowX) + position[0];
 
-	    vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[3] / windowY) + position[1];
-	    vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[2] / windowY) + position[1];
+	    vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[TOP] / windowY) + position[1];
+	    vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[BOTTOM] / windowY) + position[1];
 
-	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + 2);
+	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
 	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
 
 	    position[0] += glyph->advance / windowX;
@@ -66,22 +94,6 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	.indices = indices[0]
     });
     Mesh_NewInstance(mesh);
-}
-*/
-static void assertChar(const char character) {
-    if (!character) {
-	const char src[] = "lol";
-	//const char src[] = "This character json object has an incorrect order of fields. Character: ";
-
-	char str[sizeof(src) + 1];
-
-	strcpy(str, src);
-
-	str[sizeof(src) - 1] = character;
-	str[sizeof(src)] = '\0';
-
-	throwFatal("GUI error occurred!", str);
-    }
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {
@@ -102,7 +114,7 @@ static void initGlyphs() {
 
     size_t fileSize;
     int width, height;
-    char character, firstChar;
+    char maxChar;
 
     char* const js = PH_OpenFile(path, sizeof(path), &fileSize);
 
@@ -115,38 +127,127 @@ static void initGlyphs() {
     checkJSMN(numTokens, path);
 
     //reset parser
-    jsmn_init(&parser);
-
     jsmntok_t* const tokens = mallocd(numTokens * sizeof(*tokens));
+
+    jsmn_init(&parser);
 
     checkJSMN(jsmn_parse(&parser, js, fileSize - 1, tokens, numTokens), path);
 
-    character = 0;
+    firstChar = CHAR_MAX;
+    maxChar = CHAR_MIN;
 
     //count characters
     for (const jsmntok_t* token = tokens; token < tokens + numTokens;) {
-	if (token->type == JSMN_STRING && !tokenStrCmp(js, "unicode", token)) {
-	    token++;
+	if (!tokenStrCmp(js, "unicode", token)) {
+	    const char c = (char)atoi(js + (++token)->start);
 
-	    const char c = (char)atoi(js + token->start);
+	    if (c < firstChar) firstChar = c;
+	    if (c > maxChar) maxChar = c;
 
-	    if (!character) firstChar = c;
-
-	    character = c;
-
-	    token += 2;
+	    //token += 2;
 	}
 	else token++;
     }
 
-    if (!character) throwFatal("There are no glyphs in this JSON!", path);
+    if (!maxChar) throwFatal("There are no glyphs in this font json file!", path);
 
-    mallocarr(characters, character - firstChar + 1);
+    mallocarr(characters, maxChar - firstChar + 1);
 
-    character = 0;
+    const float texture = (float)TexturesHandler_LoadTextureRGB888(atlas, width, height, path);
 
-    for (const jsmntok_t* token = tokens; token < tokens + numTokens;) {
-	if (token->type == JSMN_STRING) {
+    for (const jsmntok_t* token = tokens; token < tokens + numTokens - 1; token++) {
+	if (!tokenStrCmp(js, "glyphs", token)) {
+	    const int numGlyphs = (++token)->size;
+
+	    if (token->type != JSMN_ARRAY) throwFatal(path, "'glyphs' has been expected to be an array");
+	    else if (!token->size) throwFatal(path, "There are no glyphs in this font json file");
+
+	    bool recordingUV;
+
+	    const jsmntok_t* glyph;
+	    Glyph* character;
+
+	    glyph = ++token;
+
+	    for (int i = 0; i < numGlyphs;) {
+		if (token->type == JSMN_OBJECT) {
+		    ++i;
+
+		    glyph = ++token;
+
+		    character = NULL;
+		}
+		else if (!tokenStrCmp(js, "unicode", token) && !character) {
+		    character = characters + atoi(js + token[1].start) - firstChar;
+
+		    token = glyph;
+		}
+		else {
+		    if (character) {
+			if (!tokenStrCmp(js, "advance", token)) character->advance = strtof(js + token[1].start, NULL);
+			else if (!tokenStrCmp(js, "planeBounds", token)) recordingUV = false;
+			else if (!tokenStrCmp(js, "atlasBounds", token)) recordingUV = true;
+			else {
+			    const ptrdiff_t side = isTokenCoord(js, token);
+
+			    const float value = strtof(js + token[1].start, NULL);
+
+			    if (recordingUV) {
+				const float w = (value / (float)width) + texture, h = 1 - (value / (float)height);
+
+				switch (side) {
+				case LEFT:
+				    character->texCoords[1][0] = character->texCoords[2][0] = w;
+				    break;
+				case BOTTOM:
+				    character->texCoords[2][1] = character->texCoords[3][1] = h;
+				    break;
+				case RIGHT:
+				    character->texCoords[0][0] = character->texCoords[3][0] = w;
+				    break;
+				case TOP:
+				    character->texCoords[0][1] = character->texCoords[1][1] = h;
+				}
+			    }
+			    else character->coords[side] = value;
+			}
+		    }
+
+		    token += 2;
+		}
+	    }
+
+	    /*
+	    for (++token; token <= glyphs + glyphs->size; token++) {
+		const jsmntok_t* const glyph = token;
+
+		Glyph* character;
+
+		character = NULL;
+
+		printf("%i\n", glyph->size);
+
+		for (++token; token <= glyph + glyph->size; token += 2) {
+		    if (!tokenStrCmp(js, "unicode", token)) {
+			character = characters + atoi(js + token[1].start) - firstChar;
+
+			break;
+		    }
+		}
+
+		if (!character) {
+		    throwFatal(path, "This font json file has a glyph object which isn't associated with any character");
+		}
+
+		token = glyph;
+
+		for (token++; token <= glyph + glyph->size; token += 2) {
+		    if (!tokenStrCmp(js, "advance", token)) character->advance = strtof(js + token[1].start, NULL);
+		}
+	    }
+	    */
+
+	    /*
 	    if (!tokenStrCmp(js, "unicode", token)) {
 		token++;
 
@@ -159,17 +260,37 @@ static void initGlyphs() {
 	    else if (!tokenStrCmp(js, "advance", token)) {
 		assertChar(character);
 
-		token++;
+		//measured in em
+		characters[character - firstChar].advance = strtof(js + (++token)->start, NULL);
+	    }
+	    else if (!tokenStrCmp(js, "planeBounds", token)) {
+		Glyph* const glyph = characters + character - firstChar;
+
+		assertChar(character);
 
 		//measured in em
-		characters[character - firstChar].advance = strtof(js + token->start, NULL);
+		glyph->coords[0] = strtof(js + (token += 3)->start, NULL);
+		glyph->coords[1] = strtof(js + (token += 2)->start, NULL);
+		glyph->coords[2] = strtof(js + (token += 2)->start, NULL);
+		glyph->coords[3] = strtof(js + (token += 2)->start, NULL);
 	    }
-	}
+	    else if (!tokenStrCmp(js, "atlasBounds", token)) {
+		Glyph* const glyph = characters + character - firstChar;
 
-	token++;
+		assertChar(character);
+
+		//measured in em
+		glyph->coords[0] = strtof(js + (token += 3)->start, NULL);
+		glyph->coords[1] = strtof(js + (token += 2)->start, NULL);
+		glyph->coords[2] = strtof(js + (token += 2)->start, NULL);
+		glyph->coords[3] = strtof(js + (token += 2)->start, NULL);
+	    }
+	    */
+
+	    break;
+	}
     }
 
-    //const float texture = (float)TexturesHandler_LoadTextureRGB888(textureData, atlasSize, atlasSize, path);
 
     /*
     for (int i = 0; i < NUM_CHARACTERS; i++) {
@@ -203,13 +324,13 @@ static void initGlyphs() {
 
 void GUI_Init() {
     initGlyphs();
-    //initText(&testText, "Lorem ipsum dolor sit amet!");
+    initText(&testText, "Lorem ipsum dolor sit amet!");
 }
 void GUI_UpdateTexts() {
-    //Mesh_DeleteInstance(&testText);
-    //Mesh_Destroy(&testText);
+    Mesh_DeleteInstance(&testText);
+    Mesh_Destroy(&testText);
 
-    //initText(&testText, "Lorem ipsum dolor sit amet!");
+    initText(&testText, "Lorem ipsum dolor sit amet!");
 }
 void GUI_Loop() {
 

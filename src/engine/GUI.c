@@ -52,6 +52,8 @@ static int tokenStrCmp(const char js[const], const char str[const], const jsmnto
     return token->type == JSMN_STRING ? strncmp(js + token->start, str, token->end - token->start) : 1;
 }
 static void initText(Mesh* const mesh, const char text[const]) {
+    const float size = 100;
+
     const size_t textLength = strlen(text);
 
     vec2 position = GLM_VEC2_ZERO_INIT;
@@ -63,8 +65,8 @@ static void initText(Mesh* const mesh, const char text[const]) {
 
     WH_GetWindowSize(&windowX, &windowY);
 
-    windowX /= 200;
-    windowY /= 200;
+    windowX /= size;
+    windowY /= size;
 
     for (size_t i = 0; i < textLength; i++) {
 	const Index3D order[] = {0, 1, 2, 0, 2, 3};
@@ -291,6 +293,11 @@ static void initGlyphs() {
 	}
     }
 
+    for (int i = 0; i < maxChar - firstChar; i++) {
+	const float a = (characters[i].coords[RIGHT] - characters[i].coords[LEFT]) * width;
+	const float b = (characters[i].texCoords[0][0] - characters[i].texCoords[1][0]) * width;
+	printf("%c %f %f %.20f\n", i + firstChar, a, b, a / b);
+    }
 
     /*
     for (int i = 0; i < NUM_CHARACTERS; i++) {

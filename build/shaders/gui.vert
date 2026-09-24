@@ -4,19 +4,9 @@ struct Vertex {
     float position[2];
     float texcoord[2];
 };
-struct DrawElementsIndirectCommand {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
 
 layout (binding = 0, std430) readonly buffer verticesBuffer {
     Vertex verts[];
-};
-layout (binding = 2, std430) readonly buffer commandsBuffer {
-    DrawElementsIndirectCommand commands[];
 };
 layout (binding = 3, std430) readonly buffer instancesDataBuffer {
     mat4 instancesData[];

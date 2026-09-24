@@ -1,18 +1,10 @@
 #version 460 core
 
+#include "commands.glsl"
+
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-struct DrawElementsIndirectCommand {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
-
-layout (binding = 2, std430) writeonly buffer commandsBuffer {
-    DrawElementsIndirectCommand commands[];
-};
+DECLARE_COMMANDS(writeonly);
 
 void main() {
     commands[gl_GlobalInvocationID.x].instanceCount = 0;

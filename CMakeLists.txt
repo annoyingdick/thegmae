@@ -55,6 +55,12 @@ FetchContent_Declare(
     DOWNLOAD_NO_EXTRACT TRUE
 )
 FetchContent_MakeAvailable(khashl)
+FetchContent_Declare(
+    stbinclude 
+    URL https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_include.h
+    DOWNLOAD_NO_EXTRACT TRUE
+)
+FetchContent_MakeAvailable(stbinclude)
 
 set(CMAKE_C_FLAGS_DEBUG "")
 set(CMAKE_C_FLAGS_RELEASE "-O3")
@@ -67,16 +73,17 @@ target_link_libraries(thegmae SDL3-static)
 target_link_libraries(thegmae libglew_static)
 target_link_libraries(thegmae cglm)
 
+#target_include_directories(thegmae PRIVATE ${SDL_SOURCE_DIR}/include)
+
+target_include_directories(thegmae PUBLIC ${nuklear_SOURCE_DIR})
+target_include_directories(thegmae PUBLIC ${stbimage_SOURCE_DIR})
+target_include_directories(thegmae SYSTEM PUBLIC ${stbinclude_SOURCE_DIR})
+target_include_directories(thegmae PUBLIC ${cgltf_SOURCE_DIR})
+target_include_directories(thegmae PUBLIC ${khashl_SOURCE_DIR})
+
 if (ENABLE_ALL_WARNINGS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror")
 endif()
 if (GENERATE_DEBUG_SYMBOLS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 endif()
-
-#target_include_directories(thegmae PRIVATE ${SDL_SOURCE_DIR}/include)
-
-target_include_directories(thegmae PUBLIC ${nuklear_SOURCE_DIR})
-target_include_directories(thegmae PUBLIC ${stbimage_SOURCE_DIR})
-target_include_directories(thegmae PUBLIC ${cgltf_SOURCE_DIR})
-target_include_directories(thegmae PUBLIC ${khashl_SOURCE_DIR})

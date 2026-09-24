@@ -1,22 +1,16 @@
 #version 460 core
 
+#include "commands.glsl"
+
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-struct DrawElementsIndirectCommand {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
 struct InstanceData {
     mat4 inMat;
     mat4 outMat;
 };
 
-layout (binding = 2, std430) buffer commandsBuffer {
-    DrawElementsIndirectCommand commands[];
-};
+DECLARE_COMMANDS();
+
 layout (binding = 3, std430) buffer instancesDataBuffer {
     InstanceData instancesData[];
 };

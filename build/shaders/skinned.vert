@@ -1,5 +1,7 @@
 #version 460 core
 
+#include "commands.glsl"
+
 #define MAX_WEIGHTS 4
 #define MAX_BONES 128
 
@@ -8,22 +10,14 @@ struct Vertex {
     float texcoord[2];
     float weights[MAX_WEIGHTS];
 };
-struct DrawElementsIndirectCommand {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
 struct InstanceData {
     mat4 bones[MAX_BONES];
 };
 
+DECLARE_COMMANDS(readonly);
+
 layout (binding = 0, std430) readonly buffer verticesBuffer {
     Vertex verts[];
-};
-layout (binding = 2, std430) readonly buffer commandsBuffer {
-    DrawElementsIndirectCommand commands[];
 };
 layout (binding = 3, std430) readonly buffer instancesDataBuffer {
     InstanceData instancesData[];

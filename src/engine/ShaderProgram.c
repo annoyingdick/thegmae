@@ -1,7 +1,10 @@
 #include "def.h"
 #include "PathHandler.h"
-
 #include "ShaderProgram.h"
+
+#define STB_INCLUDE_LINE_NONE
+#define STB_INCLUDE_IMPLEMENTATION
+#include <stb_include.h>
 
 #define GLERROR_INFO_SIZE 512
 
@@ -11,41 +14,60 @@ typedef struct {
     GLchar* string;
 } FileReadResult;
 
-static char* openFile(const char fileName[const], size_t* const outFileSize) {
-    const char relPathPreStr[] = "shaders\\";
+static char* openFile(const char fileName[const], const char includesStr[const]) {
+    const PathStringSize filePathSize = strlen(includesStr) + strlen(fileName) + 1;
 
-    const PathStringSize relPathStrSize = sizeof(relPathPreStr) + strlen(fileName); 
+    char filePath[filePathSize];
 
-    char relPathStr[relPathStrSize];
-
-    strcpy(relPathStr, relPathPreStr);
-    strcat(relPathStr, fileName);
-
-    return PH_OpenFile(relPathStr, relPathStrSize, outFileSize);
-}
-static void sourceShader(const GLuint shader, const char fileName[const]) {
     size_t fileSize;
 
-    char* const string = openFile(fileName, &fileSize);
+    strcpy(filePath, includesStr);
+    strcat(filePath, fileName);
+
+    char* const file = PH_OpenFile(filePath, filePathSize, &fileSize);
+
+    //make it null terminated
+    file[fileSize - 1] = '\0';
+
+    return file;
+}
+static char* includeFile(const char fileName[const]) {
+    const char includesStr[] = "shaders\\";
+
+    char includesPath[PH_GetAbsolutePathStrSize(sizeof(includesStr))], error[UINT8_MAX + 1];
+    
+    PH_GetAbsolutePathStr(includesPath, includesStr);
+
+    char* const cleanFile = openFile(fileName, includesStr);
+    char* const file = stb_include_string(cleanFile, NULL, includesPath, NULL, error);
+
+    free(cleanFile);
+
+    if (!file) throwFatal("stb_include error has occurred!", error);
+
+    return file;
+}
+static void sourceShader(const GLuint shader, const char fileName[const]) {
+    char* const string = includeFile(fileName);
 
     //are we fucking deadass???
-    glShaderSource(shader, 1, (const GLchar**)&string, (GLint*)&fileSize);
+    glShaderSource(shader, 1, (const GLchar**)&string, NULL);
 
     free(string);
 }
-static void printErrorShader(const GLuint shader) {
+static void printErrorShader(const GLuint shader, const char fileName[const]) {
     char errorInfo[GLERROR_INFO_SIZE];
 
     glGetShaderInfoLog(shader, GLERROR_INFO_SIZE, NULL, errorInfo);
 
-    throwFatal("Shader compilation failed!", errorInfo);
+    throwFatal(fileName, errorInfo);
 }
-static void checkShader(const GLuint shader, const GLenum pName) {
+static void checkShader(const GLuint shader, const GLenum pName, const char fileName[const]) {
     GLint success;
 
     glGetShaderiv(shader, pName, &success);
 
-    if (!success) printErrorShader(shader);
+    if (!success) printErrorShader(shader, fileName);
 }
 static GLuint createShader(const GLenum type, const char fileName[const]) {
     const GLuint shader = glCreateShader(type);
@@ -54,7 +76,7 @@ static GLuint createShader(const GLenum type, const char fileName[const]) {
 
     glCompileShader(shader);
 
-    checkShader(shader, GL_COMPILE_STATUS);
+    checkShader(shader, GL_COMPILE_STATUS, fileName);
 
     return shader;
 }

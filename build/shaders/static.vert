@@ -1,26 +1,20 @@
 #version 460 core
 
+#include "commands.glsl"
+
 struct Vertex {
     float position[3];
     float texcoord[2];
-};
-struct DrawElementsIndirectCommand {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
 };
 struct InstanceData {
     mat4 inMat;
     mat4 outMat;
 };
 
+DECLARE_COMMANDS(readonly);
+
 layout (binding = 0, std430) readonly buffer verticesBuffer {
     Vertex verts[];
-};
-layout (binding = 2, std430) readonly buffer commandsBuffer {
-    DrawElementsIndirectCommand commands[];
 };
 layout (binding = 3, std430) readonly buffer instancesDataBuffer {
     InstanceData instancesData[];

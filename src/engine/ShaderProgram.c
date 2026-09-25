@@ -1,6 +1,6 @@
 #include "def.h"
 #include "PathHandler.h"
-#include "ShaderProgram.h"
+#include "Pip.h"
 
 #define STB_INCLUDE_LINE_NONE
 #define STB_INCLUDE_IMPLEMENTATION
@@ -47,8 +47,32 @@ static char* includeFile(const char fileName[const]) {
 
     return file;
 }
+static void replaceDollars(char string[restrict], const char fileName[const restrict]) {
+    while ((string = strchr(string, '$') + 1) != (char*)1) {
+	char* const end = strchr(string, '$');
+
+	if (!end) throwFatal(fileName, "This shader has an odd number of $s!");
+
+	//printf("%u %.*s\n", (int)(end - string), (int)(end - string), string);
+    //snprintf(string - 1, end - string + 2, "%u", name);
+    //
+
+#define X(name) else if (end - string == sizeof(#name) - 1 && !strncmp(string, #name, end - string)) { \
+    memset(string, ' ', end - string + 1); \
+    string[sprintf(string - 1, "%u", name) - 1] = ' '; \
+}
+	if (0) {}
+	DECLARE_BUFFER_BINDINGS
+	else throwFatal(fileName, "Unknown constant in this shader!");
+#undef X
+
+	string = end + 1;
+    }
+}
 static void sourceShader(const GLuint shader, const char fileName[const]) {
     char* const string = includeFile(fileName);
+
+    replaceDollars(string, fileName);
 
     //are we fucking deadass???
     glShaderSource(shader, 1, (const GLchar**)&string, NULL);

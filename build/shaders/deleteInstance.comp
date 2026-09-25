@@ -1,14 +1,12 @@
 #version 460 core
 
 #include "commands.glsl"
+#include "instancesMeshIds.glsl"
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 DECLARE_COMMANDS();
-
-layout (binding = 5, std430) writeonly buffer instancesMeshIdsBuffer {
-    uint instancesMeshIds[];
-};
+DECLARE_IMI(writeonly);
 
 uniform uint baseMeshId;
 

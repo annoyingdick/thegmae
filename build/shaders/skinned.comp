@@ -1,6 +1,7 @@
 #version 460 core
 
 #include "commands.glsl"
+#include "instancesMeshIds.glsl"
 
 #define MAX_BONES 128
 
@@ -11,15 +12,13 @@ struct InstanceData {
 };
 
 DECLARE_COMMANDS();
+DECLARE_IMI(readonly);
 
 layout (binding = 3, std430) buffer instancesDataBuffer {
     InstanceData instancesData[];
 };
 layout (binding = 4, std430) writeonly buffer usedInstancesIdsBuffer {
     uint usedInstancesIds[];
-};
-layout (binding = 5, std430) readonly buffer instancesMeshIdsBuffer {
-    uint instancesMeshIds[];
 };
 
 //needed to calculate mvp matrix

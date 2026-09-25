@@ -6,4 +6,5 @@ struct DrawElementsIndirectCommand {
     uint baseInstance;
 };
 
-#define DECLARE_COMMANDS(x) layout (binding = 2, std430) x buffer commandsBuffer { DrawElementsIndirectCommand commands[]; }
+#define DECLARE_COMMANDS(x) layout (binding = $BUFFER_BINDING_COMMANDS$, std430) x buffer commandsBuffer { \
+    DrawElementsIndirectCommand commands[]; }

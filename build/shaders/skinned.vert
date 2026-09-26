@@ -1,6 +1,7 @@
 #version 460 core
 
 #include "commands.glsl"
+#include "processVertices.glsl"
 
 #define MAX_WEIGHTS 4
 
@@ -14,16 +15,7 @@ struct InstanceData {
 };
 
 DECLARE_COMMANDS(readonly);
-
-layout (binding = 0, std430) readonly buffer verticesBuffer {
-    Vertex verts[];
-};
-layout (binding = 3, std430) readonly buffer instancesDataBuffer {
-    InstanceData instancesData[];
-};
-layout (binding = 4, std430) readonly buffer usedInstancesIdsBuffer {
-    uint usedInstancesIds[];
-};
+DECLARE_PROCESS_VERTICES_BUFFERS(InstanceData);
 
 layout (binding = 0) uniform uniforms {
     mat4 pvMat;

@@ -1,19 +1,13 @@
 #version 460 core
 
+#include "processVertices.glsl"
+
 struct Vertex {
     float position[2];
     float texcoord[2];
 };
 
-layout (binding = 0, std430) readonly buffer verticesBuffer {
-    Vertex verts[];
-};
-layout (binding = 3, std430) readonly buffer instancesDataBuffer {
-    mat4 instancesData[];
-};
-layout (binding = 4, std430) readonly buffer usedInstancesIdsBuffer {
-    uint usedInstancesIds[];
-};
+DECLARE_PROCESS_VERTICES_BUFFERS(mat4);
 
 out vec2 texcoord;
 

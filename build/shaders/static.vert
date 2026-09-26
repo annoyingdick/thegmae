@@ -1,6 +1,7 @@
 #version 460 core
 
 #include "commands.glsl"
+#include "processVertices.glsl"
 
 struct Vertex {
     float position[3];
@@ -12,16 +13,7 @@ struct InstanceData {
 };
 
 DECLARE_COMMANDS(readonly);
-
-layout (binding = 0, std430) readonly buffer verticesBuffer {
-    Vertex verts[];
-};
-layout (binding = 3, std430) readonly buffer instancesDataBuffer {
-    InstanceData instancesData[];
-};
-layout (binding = 4, std430) readonly buffer usedInstancesIdsBuffer {
-    uint usedInstancesIds[];
-};
+DECLARE_PROCESS_VERTICES_BUFFERS(InstanceData);
 
 out float height;
 out vec2 texcoord;

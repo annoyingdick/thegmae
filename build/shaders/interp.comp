@@ -1,7 +1,6 @@
 #version 460 core
 
-#include "commands.glsl"
-#include "instancesMeshIds.glsl"
+#include "processInstances.glsl"
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
@@ -11,20 +10,7 @@ struct InstanceData {
     mat4 current;
 };
 
-DECLARE_COMMANDS();
-DECLARE_IMI(readonly);
-
-layout (binding = 3, std430) buffer instancesDataBuffer {
-    InstanceData instancesData[];
-};
-layout (binding = 4, std430) writeonly buffer usedInstancesIdsBuffer {
-    uint usedInstancesIds[];
-};
-
-//needed to calculate mvp matrix
-layout (binding = 0) uniform uniforms {
-    mat4 pvMat;
-};
+DECLARE_PROCESS_INSTANCES_BUFFERS(InstanceData);
 
 uniform float interp;
 

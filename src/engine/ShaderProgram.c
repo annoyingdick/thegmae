@@ -63,6 +63,7 @@ static void replaceDollars(char string[restrict], const char fileName[const rest
 }
 	if (0) {}
 	DECLARE_BUFFER_BINDINGS
+	X(MAX_BONES)
 	else throwFatal(fileName, "Unknown constant in this shader!");
 #undef X
 

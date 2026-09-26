@@ -3,7 +3,6 @@
 #include "commands.glsl"
 
 #define MAX_WEIGHTS 4
-#define MAX_BONES 128
 
 struct Vertex {
     float position[3];
@@ -11,7 +10,7 @@ struct Vertex {
     float weights[MAX_WEIGHTS];
 };
 struct InstanceData {
-    mat4 bones[MAX_BONES];
+    mat4 bones[$MAX_BONES$];
 };
 
 DECLARE_COMMANDS(readonly);

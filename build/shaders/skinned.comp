@@ -2,19 +2,17 @@
 
 #include "processInstances.glsl"
 
-#define MAX_BONES 128
-
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 struct InstanceData {
-    mat4 bones[MAX_BONES];
+    mat4 bones[$MAX_BONES$];
 };
 
 DECLARE_PROCESS_INSTANCES_BUFFERS(InstanceData);
 
 void main() {
     //instance is visible
-    for (uint i = 0; i < MAX_BONES; i++) {
+    for (uint i = 0; i < $MAX_BONES$; i++) {
 	instancesData[gl_GlobalInvocationID.x].bones[i] = pvMat * instancesData[gl_GlobalInvocationID.x].bones[i];
     }
 

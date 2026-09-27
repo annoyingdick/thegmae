@@ -51,8 +51,24 @@ static ptrdiff_t isTokenCoord(const char js[const], const jsmntok_t* const token
 static int tokenStrCmp(const char js[const], const char str[const], const jsmntok_t* const token) {
     return token->type == JSMN_STRING ? strncmp(js + token->start, str, token->end - token->start) : 1;
 }
+static TextureID getAtlas(float* const width, float* const height) {
+    const char path[] = "fonts\\bold.png";
+
+    int w, h;
+
+    stbi_uc* const atlas = stbi_load(path, &w, &h, NULL, 3);
+
+    const TextureID texture = TexturesHandler_LoadTextureRGB888(atlas, w, h, path);
+
+    *width = (float)w;
+    *height = (float)h;
+
+    stbi_image_free(atlas);
+
+    return texture;
+}
 static void initText(Mesh* const mesh, const char text[const]) {
-    const float size = 100;
+    const float size = 100, outline = .3f;
 
     const size_t textLength = strlen(text);
 
@@ -96,7 +112,7 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	.indices = indices[0]
     });
 
-    *(float*)R_GetUploadPtr(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh)) = .3f;
+    *(float*)R_GetUploadPtr(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh)) = outline;
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {
@@ -110,18 +126,90 @@ static void checkJSMN(const int ret, const char path[const]) {
 	throwFatal("JSMN error: string too short", path);
     }
 }
+static void processGlyphValue(
+    const char js[const], Glyph* const character, const jsmntok_t* const token, 
+    const float width, const float height, const float texture, const bool recordingUV
+) {
+    const ptrdiff_t side = isTokenCoord(js, token);
+
+    const float value = strtof(js + token[1].start, NULL);
+
+    if (recordingUV) {
+	const float w = (value / width) + texture, h = 1 - (value / height);
+
+	switch (side) {
+	case LEFT:
+	    character->texCoords[1][0] = character->texCoords[2][0] = w;
+	    break;
+	case BOTTOM:
+	    character->texCoords[2][1] = character->texCoords[3][1] = h;
+	    break;
+	case RIGHT:
+	    character->texCoords[0][0] = character->texCoords[3][0] = w;
+	    break;
+	case TOP:
+	    character->texCoords[0][1] = character->texCoords[1][1] = h;
+	}
+    }
+    else character->coords[side] = value;
+}
+static void processTokens(jsmntok_t tokens[const], const char js[const], const char path[const], const int numTokens) {
+    float width, height;
+
+    const float texture = (float)getAtlas(&width, &height);
+
+    for (const jsmntok_t* token = tokens; token < tokens + numTokens - 1; token++) {
+	if (!tokenStrCmp(js, "glyphs", token)) {
+	    const int numGlyphs = (++token)->size;
+
+	    if (token->type != JSMN_ARRAY) throwFatal(path, "'glyphs' has been expected to be an array");
+	    else if (!token->size) throwFatal(path, "There are no glyphs in this font json file");
+
+	    bool recordingUV;
+
+	    const jsmntok_t* glyph;
+	    Glyph* character;
+
+	    glyph = ++token;
+
+	    for (int i = 0; i < numGlyphs;) {
+		if (token->type == JSMN_OBJECT) {
+		    ++i;
+
+		    glyph = ++token;
+
+		    character = NULL;
+		}
+		else if (!tokenStrCmp(js, "unicode", token) && !character) {
+		    character = characters + atoi(js + token[1].start) - firstChar;
+
+		    token = glyph;
+		}
+		else {
+		    if (character) {
+			if (!tokenStrCmp(js, "advance", token)) character->advance = strtof(js + token[1].start, NULL);
+			else if (!tokenStrCmp(js, "planeBounds", token)) recordingUV = false;
+			else if (!tokenStrCmp(js, "atlasBounds", token)) recordingUV = true;
+			else processGlyphValue(js, character, token, width, height, texture, recordingUV);
+		    }
+
+		    token += 2;
+		}
+	    }
+
+	    break;
+	}
+    }
+}
 static void initGlyphs() {
     const char path[] = "fonts\\bold.json";
 
     jsmn_parser parser;
 
     size_t fileSize;
-    int width, height;
     char maxChar;
 
     char* const js = PH_OpenFile(path, sizeof(path), &fileSize);
-
-    stbi_uc* const atlas = stbi_load("fonts\\bold.png", &width, &height, NULL, 3);
 
     jsmn_init(&parser);
 
@@ -156,178 +244,10 @@ static void initGlyphs() {
 
     mallocarr(characters, maxChar - firstChar + 1);
 
-    const float texture = (float)TexturesHandler_LoadTextureRGB888(atlas, width, height, path);
-
-    for (const jsmntok_t* token = tokens; token < tokens + numTokens - 1; token++) {
-	if (!tokenStrCmp(js, "glyphs", token)) {
-	    const int numGlyphs = (++token)->size;
-
-	    if (token->type != JSMN_ARRAY) throwFatal(path, "'glyphs' has been expected to be an array");
-	    else if (!token->size) throwFatal(path, "There are no glyphs in this font json file");
-
-	    bool recordingUV;
-
-	    const jsmntok_t* glyph;
-	    Glyph* character;
-
-	    glyph = ++token;
-
-	    for (int i = 0; i < numGlyphs;) {
-		if (token->type == JSMN_OBJECT) {
-		    ++i;
-
-		    glyph = ++token;
-
-		    character = NULL;
-		}
-		else if (!tokenStrCmp(js, "unicode", token) && !character) {
-		    character = characters + atoi(js + token[1].start) - firstChar;
-
-		    token = glyph;
-		}
-		else {
-		    if (character) {
-			if (!tokenStrCmp(js, "advance", token)) character->advance = strtof(js + token[1].start, NULL);
-			else if (!tokenStrCmp(js, "planeBounds", token)) recordingUV = false;
-			else if (!tokenStrCmp(js, "atlasBounds", token)) recordingUV = true;
-			else {
-			    const ptrdiff_t side = isTokenCoord(js, token);
-
-			    const float value = strtof(js + token[1].start, NULL);
-
-			    if (recordingUV) {
-				const float w = (value / (float)width) + texture, h = 1 - (value / (float)height);
-
-				switch (side) {
-				case LEFT:
-				    character->texCoords[1][0] = character->texCoords[2][0] = w;
-				    break;
-				case BOTTOM:
-				    character->texCoords[2][1] = character->texCoords[3][1] = h;
-				    break;
-				case RIGHT:
-				    character->texCoords[0][0] = character->texCoords[3][0] = w;
-				    break;
-				case TOP:
-				    character->texCoords[0][1] = character->texCoords[1][1] = h;
-				}
-			    }
-			    else character->coords[side] = value;
-			}
-		    }
-
-		    token += 2;
-		}
-	    }
-
-	    /*
-	    for (++token; token <= glyphs + glyphs->size; token++) {
-		const jsmntok_t* const glyph = token;
-
-		Glyph* character;
-
-		character = NULL;
-
-		printf("%i\n", glyph->size);
-
-		for (++token; token <= glyph + glyph->size; token += 2) {
-		    if (!tokenStrCmp(js, "unicode", token)) {
-			character = characters + atoi(js + token[1].start) - firstChar;
-
-			break;
-		    }
-		}
-
-		if (!character) {
-		    throwFatal(path, "This font json file has a glyph object which isn't associated with any character");
-		}
-
-		token = glyph;
-
-		for (token++; token <= glyph + glyph->size; token += 2) {
-		    if (!tokenStrCmp(js, "advance", token)) character->advance = strtof(js + token[1].start, NULL);
-		}
-	    }
-	    */
-
-	    /*
-	    if (!tokenStrCmp(js, "unicode", token)) {
-		token++;
-
-		const char c = (char)atoi(js + token->start);
-
-		if (!character) firstChar = c;
-
-		character = c;
-	    }
-	    else if (!tokenStrCmp(js, "advance", token)) {
-		assertChar(character);
-
-		//measured in em
-		characters[character - firstChar].advance = strtof(js + (++token)->start, NULL);
-	    }
-	    else if (!tokenStrCmp(js, "planeBounds", token)) {
-		Glyph* const glyph = characters + character - firstChar;
-
-		assertChar(character);
-
-		//measured in em
-		glyph->coords[0] = strtof(js + (token += 3)->start, NULL);
-		glyph->coords[1] = strtof(js + (token += 2)->start, NULL);
-		glyph->coords[2] = strtof(js + (token += 2)->start, NULL);
-		glyph->coords[3] = strtof(js + (token += 2)->start, NULL);
-	    }
-	    else if (!tokenStrCmp(js, "atlasBounds", token)) {
-		Glyph* const glyph = characters + character - firstChar;
-
-		assertChar(character);
-
-		//measured in em
-		glyph->coords[0] = strtof(js + (token += 3)->start, NULL);
-		glyph->coords[1] = strtof(js + (token += 2)->start, NULL);
-		glyph->coords[2] = strtof(js + (token += 2)->start, NULL);
-		glyph->coords[3] = strtof(js + (token += 2)->start, NULL);
-	    }
-	    */
-
-	    break;
-	}
-    }
-
-    for (int i = 0; i < maxChar - firstChar; i++) {
-	const float a = (characters[i].coords[RIGHT] - characters[i].coords[LEFT]) * width;
-	const float b = (characters[i].texCoords[0][0] - characters[i].texCoords[1][0]) * width;
-	printf("%c %f %f %.20f\n", i + firstChar, a, b, a / b);
-    }
-
-    /*
-    for (int i = 0; i < NUM_CHARACTERS; i++) {
-	stbtt_aligned_quad quad;
-
-	getQuad(packedChars, atlasSize, i, &quad);
-
-	const float leftX = packedChars[i].xoff, topY = -packedChars[i].yoff, pad = (OUTLINE - 1) / (float)atlasSize;
-
-	Glyph* const character = characters + i;
-
-	character->coords[0] = leftX - OUTLINE;
-	character->coords[1] = leftX + (float)(packedChars[i].x1 - packedChars[i].x0) + OUTLINE;
-	character->coords[2] = topY - (float)(packedChars[i].y1 - packedChars[i].y0) - OUTLINE;
-	character->coords[3] = topY + OUTLINE;
-
-	character->texCoords[0][0] = character->texCoords[3][0] = quad.s1 + texture + pad;
-	character->texCoords[0][1] = character->texCoords[1][1] = quad.t0 + texture - pad;
-	character->texCoords[1][0] = character->texCoords[2][0] = quad.s0 + texture - pad;
-	character->texCoords[2][1] = character->texCoords[3][1] = quad.t1 + texture + pad;
-	
-	character->advance = packedChars[i].xadvance + (2 * OUTLINE);
-    }
-    */
-
+    processTokens(tokens, js, path, numTokens);
+    
     free(js);
     free(tokens);
-
-    stbi_image_free(atlas);
 }
 
 void GUI_Init() {

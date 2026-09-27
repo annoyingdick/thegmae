@@ -95,7 +95,8 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	.vertices = vertices[0][0],
 	.indices = indices[0]
     });
-    Mesh_NewInstance(mesh);
+
+    *(float*)R_GetUploadPtr(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh)) = .3f;
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {

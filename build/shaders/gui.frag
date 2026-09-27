@@ -2,11 +2,19 @@
 
 #extension GL_ARB_bindless_texture : require
 
+#include "instancesMeshIds.glsl"
+
+DECLARE_IMI(readonly);
+
 layout (binding = $BUFFER_BINDING_TEXTURE_HANDLES$, std430) readonly buffer textureHandlesBuffer {
     sampler2D textures[];
 };
+layout (binding = $BUFFER_BINDING_INSTANCES_DATA$, std430) readonly buffer instancesDataBuffer {
+    float instancesData[];
+};
 
 in vec2 texcoord;
+flat in uint meshId;
 
 out vec4 finalColor;
 
@@ -32,5 +40,5 @@ void main() {
 
     finalColor = vec4(0);
     finalColor = paint(finalColor, thres, tex, inv, vec4(1));
-    finalColor = paint(finalColor, thres + 0.5, tex, inv, vec4(vec3(0), 1));
+    finalColor = paint(finalColor, thres + instancesData[instancesMeshIds[meshId]], tex, inv, vec4(vec3(0), 1));
 }

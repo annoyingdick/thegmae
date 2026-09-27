@@ -36,7 +36,7 @@ static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
     [GRAPHICS_PIPELINE_SKINNED] = MAX_BONES * sizeof(mat4),
-    [GRAPHICS_PIPELINE_GUI] = 0,
+    [GRAPHICS_PIPELINE_GUI] = sizeof(float),
     [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4)
 };
 static const GLsizeiptr pipelinesVertexSizes[] = {
@@ -405,7 +405,7 @@ void R_Loop(const float interp) {
     PipStatic_Run(&pipStatic);
 
     glDepthFunc(GL_ALWAYS);
-    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_GUI, readNormalIndex);
+    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_GUI, 0);
 
     renderSyncs[readNormalIndex] = getSync();
 

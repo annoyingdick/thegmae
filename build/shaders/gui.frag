@@ -2,7 +2,7 @@
 
 #extension GL_ARB_bindless_texture : require
 
-layout (binding = 1, std430) readonly buffer textureHandlesBuffer {
+layout (binding = $BUFFER_BINDING_TEXTURE_HANDLES$, std430) readonly buffer textureHandlesBuffer {
     sampler2D textures[];
 };
 
@@ -10,26 +10,23 @@ in vec2 texcoord;
 
 out vec4 finalColor;
 
-float median(vec3 rgb) {
+float median(const vec3 rgb) {
     return max(min(rgb.r, rgb.g), min(max(rgb.r, rgb.g), rgb.b));
 }
-vec4 paint(vec4 dst, const float threshold, const float dist, const float inv, vec4 src) {
+vec4 paint(const vec4 dst, const float threshold, const float dist, const float inv, const vec4 src) {
     const float opacity = clamp(src.a * clamp((threshold - dist) * inv + 0.5, 0, 1) - dst.a, 0, 1);
 
     return opacity * src + (1.0 - opacity) * dst;
 }
 
 void main() {
-    const vec2 normTexCoord = vec2(texcoord.x - floor(texcoord.x), texcoord.y);
+    const vec2 normTexCoord = vec2(fract(texcoord.x), texcoord.y), atlasSize = textureSize(textures[uint(texcoord.x)], 0);
+    const vec2 gradient = fwidth(normTexCoord), product = atlasSize * gradient;
     
     //hardcoded
-    const float fontSize = 100;
-
     const float tex = 1 - median(texture(textures[uint(texcoord.x)], normTexCoord).rgb);
 
-    const float atlasSize = textureSize(textures[uint(texcoord.x)], 0).s;
-
-    const float inv = 6.569366455078125 * fontSize / atlasSize;
+    const float inv = 2 * max(dot(atlasSize, gradient) / (product.s * product.t) / 2, 1);
 
     const float thres = 0.3;
 

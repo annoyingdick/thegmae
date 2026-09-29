@@ -83,7 +83,7 @@ void IH_DeleteInstance(const InstancePtrID ptrId) {
     Mesh_DeleteInstance(mesh);
 }
 void IH_UploadStatic(const InstancePtrID ptrId, const size_t size, const void* const data) {
-    R_UploadStatic(instances[ptrId].id, size, data);
+    R_UploadStatic(instances[ptrId].mesh->pipId, instances[ptrId].id, size, data);
 }
 void* IH_GetUploadPtr(const InstancePtrID ptrId) {
     return R_GetUploadPtr(instances[ptrId].mesh->pipId, instances[ptrId].id);

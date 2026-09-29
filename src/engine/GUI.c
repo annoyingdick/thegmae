@@ -112,7 +112,7 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	.indices = indices[0]
     });
 
-    *(float*)R_GetUploadPtr(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh)) = outline;
+    R_UploadStatic(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh), sizeof(outline), &outline);
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {

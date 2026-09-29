@@ -29,8 +29,9 @@ typedef enum {
     GRAPHICS_PIPELINE_NORMAL,
     GRAPHICS_PIPELINE_INTERP,
     GRAPHICS_PIPELINE_SKINNED,
+    GRAPHICS_PIPELINE_STATIC,
     GRAPHICS_PIPELINE_GUI,
-    GRAPHICS_PIPELINE_STATIC
+    GRAPHICS_PIPELINE_MAX_ENUM
 } PipID;
 
 #define NUM_DYNAMIC_PIPELINES GRAPHICS_PIPELINE_STATIC
@@ -68,7 +69,7 @@ void* R_GetPVmat();
 void R_NDCtoDirection(const NDC coords, float* dest);
 void R_UploadIndices(Region* outRegion, RegionSize count, const Index3D indices[]);
 void R_UploadVertices(PipID pipId, UploadVerticesInfo info);
-void R_UploadStatic(InstanceID id, size_t size, const void* data);
+void R_UploadStatic(PipID pipId, InstanceID id, size_t size, const void* data);
 void R_ShowTexture(TextureID id);
 void* R_GetUploadPtr(PipID pipId, InstanceID id);
 void R_UploadMesh(PipID pipId, UploadMeshInfo info);

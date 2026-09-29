@@ -17,12 +17,16 @@
 #define INIT_NUM_INDICES 2
 
 #define CHECKINIT(x) if (!indicesArena.size) throwFatal("Render is not initialized!", x)
+#define FLUSH_DYNAMIC_PIPELINE_BUFFER(x) GL_CHECK(glFlushMappedNamedBufferRange( \
+    dynamics[x].instancesDataBuffers[readInterpIndex].buf, 0, \
+    dynamics[x].base.numInstances * \
+    pipelinesInstanceDataSizes[x] \
+));
 
 //Compiler at any moment can rearrange any of the variables below so be careful!
 //These buffers can be updated by CPU (GL_DYNAMIC_STORAGE)
 static Arena indicesArena;
 static GPUBuffer indicesBuffer, textureHandlesBuffer; //private
-static PipStatic pipStatic;
 static Uniform interpUniform; //private
 
 static GLuint globalVao; //private
@@ -31,13 +35,14 @@ static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInt
 static mat4 pvMat;
 static mat4 perspectiveMat;
 
-static PipDynamic pipelines[NUM_DYNAMIC_PIPELINES];
+static PipDynamic dynamics[NUM_DYNAMIC_PIPELINES];
+static PipStatic statics[GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES];
 static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
     [GRAPHICS_PIPELINE_SKINNED] = MAX_BONES * sizeof(mat4),
-    [GRAPHICS_PIPELINE_GUI] = sizeof(float),
-    [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4)
+    [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4),
+    [GRAPHICS_PIPELINE_GUI] = sizeof(float)
 };
 static const GLsizeiptr pipelinesVertexSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = (
@@ -46,9 +51,9 @@ static const GLsizeiptr pipelinesVertexSizes[] = {
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float), 
     [GRAPHICS_PIPELINE_SKINNED] = (
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE + VERTEX_WEIGHTS_SIZE) * sizeof(float), 
+    [GRAPHICS_PIPELINE_STATIC] = (VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float),
     [GRAPHICS_PIPELINE_GUI] = (
-	VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float), 
-    [GRAPHICS_PIPELINE_STATIC] = (VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float)
+	VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
 };
 
 static GLsync renderSyncs[NUM_RING_BUFFERS];
@@ -157,7 +162,7 @@ static GLsync getSync() {
     return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 static Pip* getBasePip(const PipID pipId) {
-    return pipId >= NUM_DYNAMIC_PIPELINES ? &pipStatic.base : &pipelines[pipId].base;
+    return pipId >= NUM_DYNAMIC_PIPELINES ? &statics[pipId - NUM_DYNAMIC_PIPELINES].base : &dynamics[pipId].base;
 }
 static void initGlew() {
     const GLenum glewInitError = glewInit();
@@ -183,18 +188,18 @@ static void setPerspectiveMatrix(const float aspect) {
     glm_perspective(M_PI_2, aspect, nearZ, farZ, perspectiveMat); 
 }
 static void initPipelines() {
-    const char* const vertexShaderNames[] = {
-	"normal.vert", "interp.vert", "skinned.vert", "gui.vert"
-    };
-    const char* const piShaderNames[] = {
-	"normal.comp", "interp.comp", "skinned.comp", "gui.comp"
-    };
-    
     for (PipID i = 0; i < NUM_DYNAMIC_PIPELINES; i++) {
-	PipDynamic_Init(pipelines + i, (PipInitInfo){
+	const char* const vertexShaderNames[] = {
+	    "normal.vert", "interp.vert", "skinned.vert"
+	};
+	const char* const piShaderNames[] = {
+	    "normal.comp", "interp.comp", "skinned.comp"
+	};
+
+	PipDynamic_Init(dynamics + i, (PipInitInfo){
 	    .mainShaderInfo = {
 		.vertexShaderSourceFileName = vertexShaderNames[i],
-		.fragmentShaderSourceFileName = i == GRAPHICS_PIPELINE_GUI ? "gui.frag" : "normal.frag"
+		.fragmentShaderSourceFileName = "normal.frag"
 	    },
 	    .processInstancesShaderInfo = {piShaderNames[i]},
 
@@ -202,17 +207,25 @@ static void initPipelines() {
 	    .vertexSize = pipelinesVertexSizes[i]
 	});
     }
+    for (PipID i = 0; i < GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES; i++) {
+	const char* const vertexShaderNames[] = {
+	    "static.vert", "gui.vert"
+	};
+	const char* const piShaderNames[] = {
+	    "static.comp", "gui.comp"
+	};
 
-    PipStatic_Init(&pipStatic, (PipInitInfo){
-	.mainShaderInfo = {
-	    .vertexShaderSourceFileName = "static.vert",
-	    .fragmentShaderSourceFileName = "normal.frag"
-	},
-	.processInstancesShaderInfo = {"static.comp"},
+	PipStatic_Init(statics + i, (PipInitInfo){
+	    .mainShaderInfo = {
+		.vertexShaderSourceFileName = vertexShaderNames[i],
+		.fragmentShaderSourceFileName = i == 1 ? "gui.frag" : "normal.frag"
+	    },
+	    .processInstancesShaderInfo = {piShaderNames[i]},
 
-	.instanceDataSize = pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_STATIC],
-	.vertexSize = pipelinesVertexSizes[GRAPHICS_PIPELINE_STATIC]
-    });
+	    .instanceDataSize = pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_STATIC],
+	    .vertexSize = pipelinesVertexSizes[GRAPHICS_PIPELINE_STATIC]
+	});
+    }
 }
 
 void R_Init() {
@@ -251,7 +264,7 @@ void R_Init() {
 
     Uniform_Init(
 	&interpUniform, 
-	pipelines[GRAPHICS_PIPELINE_INTERP].base.processInstancesProgram, "interp"
+	dynamics[GRAPHICS_PIPELINE_INTERP].base.processInstancesProgram, "interp"
     );
 
     glPatchParameteri(GL_PATCH_VERTICES, NUM_VERTICES_PER_PATCH);
@@ -262,9 +275,9 @@ MeshID R_NewMesh(const PipID pipId) {
 }
 InstanceID R_NewInstance(const PipID pipId, const NewInstanceInfo info) {
     if (pipId >= NUM_DYNAMIC_PIPELINES) {
-	return PipStatic_NewInstance(&pipStatic, pipelinesInstanceDataSizes[pipId], info);
+	return PipStatic_NewInstance(statics + pipId - NUM_DYNAMIC_PIPELINES, pipelinesInstanceDataSizes[pipId], info);
     }
-    return PipDynamic_NewInstance(pipelines + pipId, pipelinesInstanceDataSizes[pipId], info);
+    return PipDynamic_NewInstance(dynamics + pipId, pipelinesInstanceDataSizes[pipId], info);
 }
 size_t R_GetVertexSizeByPipelineId(const PipID pipId) {
     return pipelinesVertexSizes[pipId];
@@ -299,9 +312,9 @@ void R_UploadIndices(Region* const outRegion, const RegionSize count, const Inde
 void R_UploadVertices(const PipID pipId, const UploadVerticesInfo info) {
     Pip_UploadVertices(getBasePip(pipId), pipelinesVertexSizes[pipId], info);
 }
-void R_UploadStatic(const InstanceID id, const size_t size, const void* const data) {
+void R_UploadStatic(const PipID pipId, const InstanceID id, const size_t size, const void* const data) {
     GL_CHECK(GPUBuffer_SubData(
-	pipStatic.instancesDataBuffer, 
+	statics[pipId - NUM_DYNAMIC_PIPELINES].instancesDataBuffer, 
 	id * pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_STATIC], (GLsizeiptr)size, data
     ));
 }
@@ -326,7 +339,7 @@ void* R_GetUploadPtr(const PipID pipId, const InstanceID id) {
 	index = writeNormalIndex;
     }
 
-    void* const mapped = pipelines[pipId].instancesDataBufferPointers[index];
+    void* const mapped = dynamics[pipId].instancesDataBufferPointers[index];
 
     return mapped + (id * pipelinesInstanceDataSizes[pipId]);
 }
@@ -382,30 +395,22 @@ void R_Loop(const float interp) {
 
     GPUBuffer_Bind(indicesBuffer, GL_ELEMENT_ARRAY_BUFFER);
 
-    ShaderProgram_Use(pipelines[GRAPHICS_PIPELINE_INTERP].base.processInstancesProgram);
+    ShaderProgram_Use(dynamics[GRAPHICS_PIPELINE_INTERP].base.processInstancesProgram);
     Uniform_Set_1F(interpUniform, interp);
 
     Pip_PreRun(pvMat);
 
-    GL_CHECK(glFlushMappedNamedBufferRange(
-	pipelines[GRAPHICS_PIPELINE_NORMAL].instancesDataBuffers[readNormalIndex].buf, 0, 
-	pipelines[GRAPHICS_PIPELINE_NORMAL].base.numInstances * 
-	pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_NORMAL]
-    ));
-    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_NORMAL, readNormalIndex);
-    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_INTERP, readInterpIndex);
+    FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_NORMAL);
+    PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_NORMAL, readNormalIndex);
+    PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_INTERP, readInterpIndex);
 
-    GL_CHECK(glFlushMappedNamedBufferRange(
-	pipelines[GRAPHICS_PIPELINE_SKINNED].instancesDataBuffers[readNormalIndex].buf, 0, 
-	pipelines[GRAPHICS_PIPELINE_SKINNED].base.numInstances * 
-	pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_SKINNED]
-    ));
-    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_SKINNED, readNormalIndex);
+    FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_SKINNED);
+    PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_SKINNED, readNormalIndex);
 
-    PipStatic_Run(&pipStatic);
+    PipStatic_Run(statics + 0);
 
     glDepthFunc(GL_ALWAYS);
-    PipDynamic_Run(pipelines + GRAPHICS_PIPELINE_GUI, 0);
+    PipStatic_Run(statics + 1);
 
     renderSyncs[readNormalIndex] = getSync();
 
@@ -417,23 +422,20 @@ void R_FixedLoopOnce() {
     readInterpIndex = (writeInterpIndex + 1) % NUM_RING_BUFFERS;
 
     //idk why this causes GL_INVALID_VALUE error in nsight, everything is in bounds, real wtf moment right here
-    GL_CHECK(glFlushMappedNamedBufferRange(
-	pipelines[GRAPHICS_PIPELINE_INTERP].instancesDataBuffers[readInterpIndex].buf, 0, 
-	pipelines[GRAPHICS_PIPELINE_INTERP].base.numInstances * 
-	pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_INTERP]
-    ));
+    FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_INTERP);
 }
 
 void R_DrawDebugGui() {
     DGH_FIELD(&indicesArena);
-    DGH_FIELD(&pipStatic.base);
+    //DGH_FIELD(&pipStatic.base);
     DGH_FIELD(readNormalIndex);
     DGH_FIELD(writeNormalIndex);
     DGH_FIELD(readInterpIndex);
     DGH_FIELD(writeInterpIndex);
     DGH_FIELD(pvMat);
     DGH_FIELD(perspectiveMat);
-    DGH_ARRAYN(pipelines);
+    DGH_ARRAYN(dynamics);
+    //DGH_ARRAYN(statics); TODO
     DGH_ARRAYN(pipelinesInstanceDataSizes);
     DGH_ARRAYN(pipelinesVertexSizes);
 }

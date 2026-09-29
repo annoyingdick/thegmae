@@ -52,8 +52,7 @@ static const GLsizeiptr pipelinesVertexSizes[] = {
     [GRAPHICS_PIPELINE_SKINNED] = (
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE + VERTEX_WEIGHTS_SIZE) * sizeof(float), 
     [GRAPHICS_PIPELINE_STATIC] = (VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float),
-    [GRAPHICS_PIPELINE_GUI] = (
-	VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
+    [GRAPHICS_PIPELINE_GUI] = (VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
 };
 
 static GLsync renderSyncs[NUM_RING_BUFFERS];
@@ -222,8 +221,8 @@ static void initPipelines() {
 	    },
 	    .processInstancesShaderInfo = {piShaderNames[i]},
 
-	    .instanceDataSize = pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_STATIC],
-	    .vertexSize = pipelinesVertexSizes[GRAPHICS_PIPELINE_STATIC]
+	    .instanceDataSize = pipelinesInstanceDataSizes[i + NUM_DYNAMIC_PIPELINES],
+	    .vertexSize = pipelinesVertexSizes[i + NUM_DYNAMIC_PIPELINES]
 	});
     }
 }
@@ -315,7 +314,7 @@ void R_UploadVertices(const PipID pipId, const UploadVerticesInfo info) {
 void R_UploadStatic(const PipID pipId, const InstanceID id, const size_t size, const void* const data) {
     GL_CHECK(GPUBuffer_SubData(
 	statics[pipId - NUM_DYNAMIC_PIPELINES].instancesDataBuffer, 
-	id * pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_STATIC], (GLsizeiptr)size, data
+	id * pipelinesInstanceDataSizes[pipId], (GLsizeiptr)size, data
     ));
 }
 void R_ShowTexture(const TextureID id) {

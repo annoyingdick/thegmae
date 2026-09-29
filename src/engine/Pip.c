@@ -208,6 +208,12 @@ void Pip_DeleteInstance(Pip* const pip, const DeleteInstanceInfo info) {
 }
 //'run' sounds cooler than either 'draw' or 'loop'
 void Pip_Run(const Pip* const pip) {
+#ifdef DEBUG
+    if (!pip->baseInstances) {
+	throwFatal("Graphics pipeline error has occurred!", "Tried to run a pipeline that is not initialized");
+    }
+#endif
+
     GPUBuffer_Bind(pip->commandsBuffer, GL_DRAW_INDIRECT_BUFFER);
     GPUBuffer_BindBase(pip->verticesBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_VERTICES);
     GPUBuffer_BindBase(pip->commandsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_COMMANDS);

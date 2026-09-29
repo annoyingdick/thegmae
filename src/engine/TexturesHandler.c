@@ -123,21 +123,19 @@ static bool uploadBatch(TaskLoadTexture* const task) {
 static bool isTextureValid(const TextureID id) {
     return names[id];
 }
-static stbi_uc* openImage(TaskLoadTexture* const task) {
-    const char relPathPreStr[] = "mesh\\";
-
-    const PathStringSize relPathStrSize = sizeof(relPathPreStr) + strlen(task->path);
+static stbi_uc* openImage(TaskLoadTexture* const task, const char preStr[const], const int channels) {
+    const PathStringSize relPathStrSize = strlen(preStr) + strlen(task->path) + 1;
 
     char relPathStr[relPathStrSize], absPathStr[PH_GetAbsolutePathStrSize(relPathStrSize)];
 
-    strcpy_s(relPathStr, relPathStrSize, relPathPreStr);
+    strcpy_s(relPathStr, relPathStrSize, preStr);
     strcat_s(relPathStr, relPathStrSize, task->path);
     PH_GetAbsolutePathStr(absPathStr, relPathStr);
 
-    return stbi_load(absPathStr, &task->width, &task->height, NULL, 4);
+    return stbi_load(absPathStr, &task->width, &task->height, NULL, channels);
 }
 static void workerThrd(TaskLoadTexture* const task) {
-    stbi_uc* const image = openImage(task);
+    stbi_uc* const image = openImage(task, "mesh\\", 4);
 
     if (image) {
 	if (task->width <= MAX_TEXTURE_SIZE && task->height <= MAX_TEXTURE_SIZE) {
@@ -246,16 +244,27 @@ TextureID TexturesHandler_BeginLoadingTask(const char name[], const char path[co
 
     return id;
 }
-TextureID TexturesHandler_LoadTextureRGB888(
-    const unsigned char data[const], const int width, const int height, const char name[const]
-) {
+TextureID TexturesHandler_LoadTextureRGB888(int* const width, int* const height, const char preStr[const], char name[const]) {
+    TaskLoadTexture task;
+
+    task.path = name;
+
+    stbi_uc* const data = openImage(&task, preStr, 3);
+
+    if (!data) throwFatal("Cannot open a font atlas image!", name);
+
     const TextureID id = createTexture(name);
 
-    allocateTextureGL(textures[id], GL_RGB8, width, height);
+    allocateTextureGL(textures[id], GL_RGB8, task.width, task.height);
 
-    glTextureSubImage2D(textures[id], 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTextureSubImage2D(textures[id], 0, 0, 0, task.width, task.height, GL_RGB, GL_UNSIGNED_BYTE, data);
 
     R_ShowTexture(id);
+
+    *width = task.width;
+    *height = task.height;
+
+    stbi_image_free(data);
 
     return id;
 }

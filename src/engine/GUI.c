@@ -52,18 +52,12 @@ static int tokenStrCmp(const char js[const], const char str[const], const jsmnto
     return token->type == JSMN_STRING ? strncmp(js + token->start, str, token->end - token->start) : 1;
 }
 static TextureID getAtlas(float* const width, float* const height) {
-    const char path[] = "fonts\\bold.png";
-
     int w, h;
 
-    stbi_uc* const atlas = stbi_load(path, &w, &h, NULL, 3);
-
-    const TextureID texture = TexturesHandler_LoadTextureRGB888(atlas, w, h, path);
+    const TextureID texture = TexturesHandler_LoadTextureRGB888(&w, &h, "fonts\\", "bold.png");
 
     *width = (float)w;
     *height = (float)h;
-
-    stbi_image_free(atlas);
 
     return texture;
 }

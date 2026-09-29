@@ -408,7 +408,7 @@ void R_Loop(const float interp) {
 
     PipStatic_Run(statics + 0);
 
-    glDepthFunc(GL_ALWAYS);
+    glClear(GL_DEPTH_BUFFER_BIT);
     PipStatic_Run(statics + 1);
 
     renderSyncs[readNormalIndex] = getSync();

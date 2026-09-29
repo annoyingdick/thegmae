@@ -34,11 +34,13 @@ void main() {
     //hardcoded
     const float tex = 1 - median(texture(textures[uint(texcoord.x)], normTexCoord).rgb);
 
-    const float inv = 2 * max(dot(atlasSize, gradient) / (product.s * product.t) / 2, 1);
+    const float inv = 5 * max(dot(atlasSize, gradient) / (product.s * product.t) / 2, 1);
 
-    const float thres = 0.3;
+    const float thres = 0.9;
 
     finalColor = vec4(0);
-    finalColor = paint(finalColor, thres, tex, inv, vec4(1));
-    finalColor = paint(finalColor, thres + instancesData[instancesMeshIds[meshId]], tex, inv, vec4(vec3(0), 1));
+    finalColor = paint(finalColor, thres - 0.4, tex, inv, vec4(1));
+    finalColor = paint(finalColor, thres, tex, inv, vec4(vec3(0), 1));
+
+    gl_FragDepth = 1 - (finalColor.r + 0.00001) * finalColor.a - 0.00001;
 }

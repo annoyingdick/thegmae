@@ -62,7 +62,7 @@ static TextureID getAtlas(float* const width, float* const height) {
     return texture;
 }
 static void initText(Mesh* const mesh, const char text[const]) {
-    const float size = 100, outline = .3f;
+    const float size = 600, outline = .5f;
 
     const size_t textLength = strlen(text);
 
@@ -252,7 +252,7 @@ void GUI_UpdateTexts() {
     Mesh_DeleteInstance(&testText);
     Mesh_Destroy(&testText);
 
-    initText(&testText, "Lorem ipsum dolor sit amet!");
+    initText(&testText, "the thirty cantimeters sausage");
 }
 void GUI_Loop() {
 

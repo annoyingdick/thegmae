@@ -1,5 +1,6 @@
 #include <SDL3/SDL_Init.h>
 #include <cglm/mat4.h>
+#include <cglm/vec2.h>
 #include "engine/Character.h"
 #include "engine/Camera.h"
 #include "engine/PhysicsSimulationHandler.h"
@@ -20,7 +21,6 @@ static GPUBuffer linesVerticesBuffer, linesIndicesBuffer;
 static InstancePtrID testCubes[NUM_TEST_CUBES];
 static PhysBodyID testCubesPhys[NUM_TEST_CUBES];
 static mat4 testCubesTrans[NUM_TEST_CUBES];
-static vec3 cameraPos;
 static NDC ndc;
 
 static float moveForward, moveBack, moveRight, moveLeft;
@@ -71,15 +71,15 @@ void GM_Init() {
 
     Character_Init(&character, &weaponMesh);
 
-    character.hasGun = true;
+    //character.hasGun = true;
 
     nforeach (Character* const an, angry)
 	Character_Init(an, &weaponMesh);
 	NH_GetRandomPoint(an->position);
 
-	an->hasGun = an - angry > 40;
+	//an->hasGun = an - angry > 40;
 
-	Character_ChooseSlot(an, 1);
+	//Character_ChooseSlot(an, 1);
     forend
 
     ShaderProgram_Init_VF(
@@ -140,6 +140,7 @@ void GM_KeyDown(const SDL_Keycode key) {
     case SDLK_SPACE:
 	tltspace = true;
 	break;
+	/*
     case SDLK_UP:
 	Character_ChooseSlot(&character, character.currentSlot + 1);
 	break;
@@ -160,6 +161,7 @@ void GM_KeyDown(const SDL_Keycode key) {
 	else Character_BeginSprinting(&character);
 
 	break;
+	*/
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
 	shift = true;
@@ -204,6 +206,7 @@ void GM_Loop(const float interp) {
 	    Mesh_Destroy(&tlt);
 	}
     }
+	/*
     if (mouse3) {
 	Ray ray;
 
@@ -216,12 +219,27 @@ void GM_Loop(const float interp) {
 
 	mouse3 = false;
     }
+    */
 
     if (interp) {}
+
+    const float z = moveBack - moveForward, x = moveRight - moveLeft;
+
+    character.go = x || z;
+
+    if (character.go) {
+	const float s = sinf(Camera_GetYaw()), c = cosf(Camera_GetYaw());
+
+	character.wishDirection[0] = -(c * z) - (s * x);
+	character.wishDirection[1] = (c * x) - (s * z);
+
+	glm_vec2_normalize(character.wishDirection);
+    }
 
     Character_Loop(&character);
 
     nforeach (Character* const an, angry)
+	/*
 	if (rand() < 100 && an->hasGun) {
 	    vec3 goal;
 
@@ -231,17 +249,18 @@ void GM_Loop(const float interp) {
 	}
 	
 	Character_SwitchAim(an, true);
+	*/
 	Character_Loop(an);
     forend
 
     //camera shenaningans
-    const float moveX = moveLeft - moveRight, moveZ = moveForward - moveBack;
-    const float speed = Camera_GetZoomDistance() * WH_GetDeltaTime();
+    //const float moveX = moveLeft - moveRight, moveZ = moveForward - moveBack;
+    //const float speed = Camera_GetZoomDistance() * WH_GetDeltaTime();
 
-    cameraPos[0] += (sinf(Camera_GetYaw()) * moveX + cosf(Camera_GetYaw()) * moveZ) * speed;
-    cameraPos[2] += (sinf(Camera_GetYaw()) * moveZ - cosf(Camera_GetYaw()) * moveX) * speed;
+    //cameraPos[0] += (sinf(Camera_GetYaw()) * moveX + cosf(Camera_GetYaw()) * moveZ) * speed;
+    //cameraPos[2] += (sinf(Camera_GetYaw()) * moveZ - cosf(Camera_GetYaw()) * moveX) * speed;
 
-    Camera_SetLookAtPosition(cameraPos);
+    Camera_SetLookAtPosition(character.position);
 
     TestMeshStreaming_Loop();
 

@@ -92,13 +92,17 @@ Character* CH_FindClosestVisibleAliveArmedCharacter(Character* const character) 
     minDistance = INFINITY;
     result = NULL;
 
-    foreach (Character* const* const c, characters, nextCharacterId)
+    if (minDistance && character) {}
+
+    //foreach (Character* const* const c, characters, nextCharacterId)
 	//if (Character_CanSeeDotCheck(character, *c)) {
-	    if ((*c)->state != CHARACTER_STATE_DEAD && (*c)->hasGun) processCharacter(character, *c, &minDistance, &result);
+	    //if ((*c)->state != CHARACTER_STATE_DEAD && (*c)->hasGun) processCharacter(character, *c, &minDistance, &result);
 	//}
-    forend
+    //forend
 
     return result;
+
+    processCharacter(character, NULL, &minDistance, &result);
 }
 Character* CH_FindClosestVisibleAliveCharacter(Character* const character) {
     float minDistance;
@@ -108,11 +112,15 @@ Character* CH_FindClosestVisibleAliveCharacter(Character* const character) {
     minDistance = INFINITY;
     result = NULL;
 
+    if (minDistance && character) {}
+
+    /*
     foreach (Character* const* const c, characters, nextCharacterId)
 	if (Character_CanSeeDotCheck(character, *c)) {
 	    if ((*c)->state != CHARACTER_STATE_DEAD) processCharacter(character, *c, &minDistance, &result);
 	}
     forend
+    */
 
     return result;
 }

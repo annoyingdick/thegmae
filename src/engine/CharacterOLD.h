@@ -2,6 +2,8 @@
 #define Character_h_
 
 #include "InstancesHandler.h"
+#include "Geometry.h"
+#include "vec3Array.h"
 #include "AnimationTrack.h"
 
 typedef uint8_t SlotID;
@@ -36,26 +38,40 @@ enum {
 };
 
 #define VARS_CHARACTER \
+X(float, fatigue) \
 X(InstancePtrID, instance) \
 X(InstancePtrID, weaponInstance) \
-X(bool, areAnimationsLoaded)
+X(SlotID, wishSlot) \
+X(SlotID, currentSlot) \
+X(StateID, state) \
+X(bool, areAnimationsLoaded) \
+X(bool, aimTaskLock) \
+X(bool, hasGun)
 
 typedef struct Character Character;
 
 struct Character {
+    vec3Array path;
+
 #define X(type, name) type name;
 VARS_CHARACTER
 #undef X
 
     vec3 position;
-    vec2 currentDirection, wishDirection;
+    vec2 direction;
+
+    Character* aimOn;
 
     AnimationTrack tracks[ANIMATION_MAX_ENUM];
-
-    bool go;
 };
 
 void Character_Init(Character* character, Mesh* weaponMesh);
+bool Character_CanSeeDotCheck(Character* character, Character* them);
+void Character_BeginSprinting(Character* character);
+void Character_StopSprinting(Character* character);
+void Character_ChooseSlot(Character* character, SlotID slot);
+void Character_SwitchAim(Character* character, bool aim);
+void Character_GoTo(Character* character, vec3 goal, TriangleID goalTri);
 void Character_Loop(Character* character);
 
 void Character_DrawDebugGui(const Character* character, const char name[]);

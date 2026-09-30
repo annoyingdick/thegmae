@@ -245,10 +245,14 @@ static void initGlyphs() {
 }
 
 void GUI_Init() {
+    return;
+
     initGlyphs();
     initText(&testText, "Lorem ipsum dolor sit amet!");
 }
 void GUI_UpdateTexts() {
+    return;
+
     Mesh_DeleteInstance(&testText);
     Mesh_Destroy(&testText);
 

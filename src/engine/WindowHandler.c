@@ -17,7 +17,7 @@
 }} while (0)
 
 static Time currentTime, currentTimeFixed, deltaTime;
-static bool isMouseFree;
+static bool isMouseLocked;
 
 static SDL_GLContext glContext;
 static SDL_Window* window;
@@ -47,6 +47,10 @@ static WHLoopResultCode pollEvents() {
 		SDL_CHECK(SDL_GL_SetSwapInterval(!interval));
 
 		break;
+	    case SDLK_GRAVE:
+		SDL_CHECK(SDL_SetWindowRelativeMouseMode(window, isMouseLocked = !isMouseLocked));
+
+		break;
 	    default:
 		GM_KeyDown(event.key.key);
 	    }
@@ -56,6 +60,7 @@ static WHLoopResultCode pollEvents() {
 	    GM_KeyUp(event.key.key);
 
 	    break;
+	    /*
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	    switch (event.button.button) {
 	    case 2:
@@ -77,6 +82,7 @@ static WHLoopResultCode pollEvents() {
 	    if (event.button.button == 2) isMouseFree = true;
 
 	    break;
+	    */
 	case SDL_EVENT_MOUSE_WHEEL:
 	    if (true) {} // a fucking fuck named clangd says that, i cannot declare vars at here...
 
@@ -94,14 +100,12 @@ static WHLoopResultCode pollEvents() {
 
 	    break;
 	case SDL_EVENT_MOUSE_MOTION:
-	    if (!isMouseFree) {
-		Camera_MouseMotion(event.motion.xrel, event.motion.yrel);
-	    }
+	    if (isMouseLocked) Camera_MouseMotion(event.motion.xrel, event.motion.yrel);
 
 	    break;
 	}
 
-	if (isMouseFree) {
+	if (!isMouseLocked) {
 	    DGH_HandleEvent(&event);
 	}
     }
@@ -180,10 +184,8 @@ void WH_Init() {
 
     SDL_CHECK(SDL_GL_MakeCurrent(window, glContext));
     SDL_CHECK(SDL_GL_SetSwapInterval(1));
-
     SDL_CHECK(SDL_StartTextInput(window));
-
-    isMouseFree = true;
+    //SDL_CHECK(SDL_SetWindowRelativeMouseMode(window, true));
 }
 void WH_R_PostInit() {
     DGH_Init(window);
@@ -233,5 +235,5 @@ void WH_DrawDebugGui() {
     DGH_FIELD(currentTime);
     DGH_FIELD(currentTimeFixed);
     DGH_FIELD(deltaTime);
-    DGH_FIELD(isMouseFree);
+    DGH_FIELD(isMouseLocked);
 }

@@ -69,12 +69,19 @@ static void initText(Mesh* const mesh, const char text[const]) {
 
     const size_t textLength = strlen(text);
 
+    float windowX, windowY;
+
     vec2 position = GLM_VEC2_ZERO_INIT;
 
     Quad vertices[textLength];
     QuadIndices indices[textLength];
 
-    float windowX, windowY;
+    const MeshInitWithDataInfo info = {
+	.verticesSize = textLength * 4,
+	.numIndices = textLength * sizeof(QuadIndices) / sizeof(**indices),
+	.vertices = vertices[0][0],
+	.indices = indices[0]
+    };
 
     WH_GetWindowSize(&windowX, &windowY);
 
@@ -89,29 +96,26 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	if (text[i] >= firstChar) {
 	    Glyph* const glyph = characters + text[i] - firstChar;
 
-	    if (text[i] != ' ') {
-		vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[RIGHT] / windowX) + position[0];
-		vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[LEFT] / windowX) + position[0];
+	    vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[RIGHT] / windowX) + position[0];
+	    vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[LEFT] / windowX) + position[0];
 
-		vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[TOP] / windowY) + position[1];
-		vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[BOTTOM] / windowY) + position[1];
+	    vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[TOP] / windowY) + position[1];
+	    vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[BOTTOM] / windowY) + position[1];
 
-		for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
-	    }
+	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
 	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
 
 	    position[0] += glyph->advance / windowX;
 	}
     }
 
-    Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_GUI, (MeshInitWithDataInfo){
-	.verticesSize = textLength * 4,
-	.numIndices = textLength * sizeof(QuadIndices) / sizeof(**indices),
-	.vertices = vertices[0][0],
-	.indices = indices[0]
-    });
 
-    R_UploadStatic(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh), sizeof(outline), &outline);
+    if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
+    else {
+	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_GUI, info);
+
+	R_UploadStatic(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh), sizeof(outline), &outline);
+    }
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {
@@ -268,24 +272,15 @@ void GUI_Init() {
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;
 
-    Mesh_DeleteInstance(&meshAmmo);
-    Mesh_Destroy(&meshAmmo);
-
     initAmmoText();
 }
 void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
     ammoMag = mag;
     ammoLeft = left;
 
-    Mesh_DeleteInstance(&meshAmmo);
-    Mesh_Destroy(&meshAmmo);
-
     initAmmoText();
 }
 void GUI_UpdateTexts() {
-    Mesh_DeleteInstance(&meshAmmo);
-    Mesh_Destroy(&meshAmmo);
-
     initAmmoText();
 }
 void GUI_Loop() {

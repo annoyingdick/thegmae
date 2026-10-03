@@ -54,7 +54,6 @@ void Mesh_Init(Mesh* const mesh, const PipID pipId, const char fileName[const]) 
 }
 void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDataInfo info) {
     initMesh(mesh, pipId);
-    makeCommand(mesh);
 
     //mesh->numUsedTextures = info.numUsedTextures;
 
@@ -106,6 +105,23 @@ InstanceID Mesh_NewInstance(Mesh* const mesh) {
 }
 void Mesh_DeleteInstance(Mesh* const mesh) {
     R_DeleteInstance(mesh->pipId, (DeleteInstanceInfo){.meshId = mesh->id, .isLastForThisMesh = !--mesh->numInstances});
+}
+void Mesh_UpdateIndicesVertices(Mesh* const mesh, const MeshInitWithDataInfo info) {
+    R_FreeIndicesVertices(mesh->pipId, &mesh->indicesRegion, &mesh->verticesRegion);
+
+    R_UploadIndices(&mesh->indicesRegion, info.numIndices, info.indices);
+    R_UploadVertices(
+	mesh->pipId,
+	(UploadVerticesInfo){
+	    .count = info.verticesSize, .outRegion = &mesh->verticesRegion, .data = info.vertices
+	}
+    );
+    R_UploadMesh(mesh->pipId, (UploadMeshInfo){
+	.meshId = mesh->id,
+	.firstIndex = mesh->indicesRegion.position,
+	.firstVertex = mesh->verticesRegion.position,
+	.numIndices = mesh->indicesRegion.size,
+    });
 }
 void Mesh_Destroy(Mesh* const mesh) {
     const bool isLoaded = mesh->indicesRegion.size != 1;

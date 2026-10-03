@@ -6,6 +6,13 @@
 #define REDEF_PRINTFD
 #include "ModelsHandler.h"
 
+static MeshID makeCommand(Mesh* const mesh) {
+    mesh->id = R_NewMesh(mesh->pipId);
+
+    printfd("Id assigned: %u\n", mesh->id);
+
+    return mesh->id;
+}
 static void initMesh(Mesh* const mesh, const PipID pipId) {
     mesh->pipId = pipId;
     mesh->numInstances = mesh->numAnimations = 0;
@@ -16,11 +23,6 @@ static void initMesh(Mesh* const mesh, const PipID pipId) {
     mesh->indicesRegion.size = 1;
 
     glm_aabb_invalidate(mesh->bounding);
-}
-static void makeCommand(Mesh* const mesh) {
-    mesh->id = R_NewMesh(mesh->pipId);
-
-    printfd("Id assigned: %u\n", mesh->id);
 }
 static void loadMesh(Mesh* const mesh) {
     //mesh->numAnimations = GLTF_LoadRig(gltf, &mesh->rootBone, &mesh->animations, &mesh->numBones);
@@ -52,6 +54,7 @@ void Mesh_Init(Mesh* const mesh, const PipID pipId, const char fileName[const]) 
 }
 void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDataInfo info) {
     initMesh(mesh, pipId);
+    makeCommand(mesh);
 
     //mesh->numUsedTextures = info.numUsedTextures;
 
@@ -70,19 +73,26 @@ void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDa
     }
     */
 
+    /*
     for (unsigned int i = 0; i < info.numIndices; i++) {
 	printf("%u ", info.indices[i]);
     }
+    */
 
     R_UploadIndices(&mesh->indicesRegion, info.numIndices, info.indices);
     R_UploadVertices(
-	mesh->pipId, 
+	pipId, 
 	(UploadVerticesInfo){
 	    .count = info.verticesSize, .outRegion = &mesh->verticesRegion, .data = info.vertices
 	}
     );
-
-    makeCommand(mesh);
+    R_UploadMesh(pipId, (UploadMeshInfo){
+	.meshId = makeCommand(mesh),
+	.firstIndex = mesh->indicesRegion.position,
+	.firstVertex = mesh->verticesRegion.position,
+	//for explanation visit this struct's declaration line
+	.numIndices = 0
+    });
 }
 bool Mesh_IsValid(const Mesh* const mesh) {
     return mesh->indicesRegion.size;

@@ -5,6 +5,7 @@
 #include "Geometry.h"
 #include "vec3Array.h"
 #include "AnimationTrack.h"
+#include "GUI.h"
 
 typedef uint8_t SlotID;
 typedef uint8_t StateID;
@@ -41,12 +42,15 @@ enum {
 X(float, fatigue) \
 X(InstancePtrID, instance) \
 X(InstancePtrID, weaponInstance) \
+X(Ammo, ammoMag) \
+X(Ammo, ammoLeft) \
 X(SlotID, wishSlot) \
 X(SlotID, currentSlot) \
 X(StateID, state) \
 X(bool, areAnimationsLoaded) \
 X(bool, aimTaskLock) \
-X(bool, hasGun)
+X(bool, hasGun) \
+X(bool, updatesGui)
 
 typedef struct Character Character;
 

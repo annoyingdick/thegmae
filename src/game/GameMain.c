@@ -71,7 +71,7 @@ void GM_Init() {
 
     Character_Init(&character, &weaponMesh);
 
-    character.hasGun = true;
+    character.hasGun = character.updatesGui = true;
 
     nforeach (Character* const an, angry)
 	Character_Init(an, &weaponMesh);

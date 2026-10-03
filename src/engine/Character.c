@@ -376,6 +376,8 @@ static void aimOn(Character* const character) {
 		if (AnimationTrack_IsFinished(shootTrack)) shootTrack->time = shootTrack->weight = 0;
 		else if (shouldShoot && character->aimOn->state != CHARACTER_STATE_DEAD) {
 		    shootTrack->weight = FLOAT_BINONE;
+
+		    if (character->updatesGui) GUI_UpdateAmmoMag(--character->ammoMag);
 #ifndef DO_NOT_KILL
 		    //kill
 		    character->aimOn->state = CHARACTER_STATE_DEAD;
@@ -502,21 +504,6 @@ void Character_GoTo(Character* const character, vec3 goal, const TriangleID goal
     );
 }
 void Character_Loop(Character* const character) {
-    /*
-
-    const Animation* currentAnimation;
-
-    const Animation* const* const group = getCurrentAnimationGroup(character);
-    if (isStopped(character)) currentAnimation = group[
-	!character->currentSlot || character->state == CHARACTER_STATE_AIM ? 
-	ANIMATION_IDLE : WEAPON_ANIMATION_IDLE_STEADY
-    ];
-    else if (character->state == CHARACTER_STATE_SPRINT) currentAnimation = group[ANIMATION_SPRINT];
-    else currentAnimation = group[ANIMATION_WALK];
-
-    if (!currentAnimation) return;
-    */
-
     if (!CH_GetMesh()->animations) return;
 
     if (!character->areAnimationsLoaded) {

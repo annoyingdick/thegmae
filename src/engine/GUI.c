@@ -8,6 +8,7 @@
 #include "Mesh.h"
 #include "TexturesHandler.h"
 #include "def.h"
+#include "GUI.h"
 
 typedef Index3D QuadIndices[3 + 3];
 typedef vec4 Quad[4]; //two floats for position and other two for tex. coords
@@ -26,7 +27,9 @@ typedef struct {
     float advance;
 } Glyph;
 
-static Mesh testText;
+static Mesh meshAmmo;
+
+static Ammo ammoMag = 10000000, ammoLeft;
 
 static char firstChar;
 
@@ -86,13 +89,15 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	if (text[i] >= firstChar) {
 	    Glyph* const glyph = characters + text[i] - firstChar;
 
-	    vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[RIGHT] / windowX) + position[0];
-	    vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[LEFT] / windowX) + position[0];
+	    if (text[i] != ' ') {
+		vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[RIGHT] / windowX) + position[0];
+		vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[LEFT] / windowX) + position[0];
 
-	    vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[TOP] / windowY) + position[1];
-	    vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[BOTTOM] / windowY) + position[1];
+		vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[TOP] / windowY) + position[1];
+		vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[BOTTOM] / windowY) + position[1];
 
-	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
+		for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
+	    }
 	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
 
 	    position[0] += glyph->advance / windowX;
@@ -243,16 +248,45 @@ static void initGlyphs() {
     free(js);
     free(tokens);
 }
+static void initAmmoText() {
+    const char format[] = "%u  %u";
+
+    const int size = snprintf(NULL, 0, format, ammoLeft, ammoMag);
+
+    char string[size];
+
+    sprintf(string, format, ammoLeft, ammoMag);
+
+    initText(&meshAmmo, string);
+}
 
 void GUI_Init() {
     initGlyphs();
-    initText(&testText, "Lorem ipsum dolor sit amet!");
+
+    initAmmoText();
+}
+void GUI_UpdateAmmoMag(const Ammo mag) {
+    ammoMag = mag;
+
+    Mesh_DeleteInstance(&meshAmmo);
+    Mesh_Destroy(&meshAmmo);
+
+    initAmmoText();
+}
+void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
+    ammoMag = mag;
+    ammoLeft = left;
+
+    Mesh_DeleteInstance(&meshAmmo);
+    Mesh_Destroy(&meshAmmo);
+
+    initAmmoText();
 }
 void GUI_UpdateTexts() {
-    Mesh_DeleteInstance(&testText);
-    Mesh_Destroy(&testText);
+    Mesh_DeleteInstance(&meshAmmo);
+    Mesh_Destroy(&meshAmmo);
 
-    initText(&testText, "the thirty cantimeters sausage");
+    initAmmoText();
 }
 void GUI_Loop() {
 

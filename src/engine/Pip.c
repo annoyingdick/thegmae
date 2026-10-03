@@ -178,13 +178,6 @@ void Pip_UploadMesh(const Pip* const pip, const UploadMeshInfo info) {
 	pip->commandsBuffer, info.meshId * (GLintptr)sizeof(DrawElementsIndirectCommand), (GLsizeiptr)sizeof(data), data
     ));
 }
-void Pip_DeleteMesh(Pip* const pip, const MeshID meshId, const Region* const verticesRegion) {
-    if (verticesRegion) Arena_ReturnRegion(&pip->verticesArena, verticesRegion);
-
-    pip->nextMeshId -= Arena_ReturnRegion(
-	&pip->commandsArena, &(Region){.position = meshId, .size = 1}
-    );
-}
 void Pip_DeleteInstance(Pip* const pip, const DeleteInstanceInfo info) {
     --pip->numInstances;
 

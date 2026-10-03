@@ -55,7 +55,6 @@ void Pip_UploadVertices(Pip* pip, GLsizeiptr vertexSize, UploadVerticesInfo info
 MeshID Pip_NewMesh(Pip* pip);
 MeshID Pip_NewInstance(Pip* pip, NewInstanceInfo info);
 void Pip_UploadMesh(const Pip* pip, UploadMeshInfo info);
-void Pip_DeleteMesh(Pip* pip, MeshID meshId, const Region* verticesRegion);
 void Pip_DeleteInstance(Pip* pip, DeleteInstanceInfo info);
 void Pip_Run(const Pip* pip);
 

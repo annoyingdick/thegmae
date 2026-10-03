@@ -110,7 +110,9 @@ void Mesh_DeleteInstance(Mesh* const mesh) {
 void Mesh_Destroy(Mesh* const mesh) {
     const bool isLoaded = mesh->indicesRegion.size != 1;
 
-    R_DeleteMesh(mesh->pipId, mesh->id, isLoaded ? &mesh->indicesRegion : NULL, isLoaded ? &mesh->verticesRegion : NULL);
+    if (isLoaded) R_FreeIndicesVertices(mesh->pipId, &mesh->indicesRegion, &mesh->verticesRegion);
+
+    R_DeleteMesh(mesh->pipId, mesh->id);
 
     if (mesh->bones) {
 	Bone_Destroy(mesh->bones + 0);

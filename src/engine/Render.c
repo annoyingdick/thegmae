@@ -345,13 +345,12 @@ void* R_GetUploadPtr(const PipID pipId, const InstanceID id) {
 void R_UploadMesh(const PipID pipId, const UploadMeshInfo info) {
     Pip_UploadMesh(getBasePip(pipId), info);
 }
-void R_DeleteMesh(
-    const PipID pipId, const MeshID meshId, 
-    const Region* const restrict indicesRegion, const Region* const restrict verticesRegion
-) {
-    if (indicesRegion) Arena_ReturnRegion(&indicesArena, indicesRegion);
+void R_DeleteMesh(const PipID pipId, const MeshID meshId) {
+    Pip* const pip = getBasePip(pipId);
 
-    Pip_DeleteMesh(getBasePip(pipId), meshId, verticesRegion);
+    pip->nextMeshId -= Arena_ReturnRegion(
+	&pip->commandsArena, &(Region){.position = meshId, .size = 1}
+    );
 }
 void R_DeleteTexture(const TextureID id) {
     GL_CHECK(glClearNamedBufferSubData(
@@ -360,6 +359,10 @@ void R_DeleteTexture(const TextureID id) {
 }
 void R_DeleteInstance(const PipID pipId, const DeleteInstanceInfo info) {
     Pip_DeleteInstance(getBasePip(pipId), info);
+}
+void R_FreeIndicesVertices(const PipID pipId, const Region* const indicesRegion, const Region* const verticesRegion) {
+    Arena_ReturnRegion(&indicesArena, indicesRegion);
+    Arena_ReturnRegion(&getBasePip(pipId)->verticesArena, verticesRegion);
 }
 void R_ResizeTextureHandlesBuffer(const RegionSize oldSize, const RegionSize newSize) {
     GL_CHECK(GPUBuffer_Realloc(

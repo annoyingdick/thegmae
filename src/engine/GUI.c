@@ -64,14 +64,22 @@ static TextureID getAtlas(float* const width, float* const height) {
 
     return texture;
 }
-static void initText(Mesh* const mesh, const char text[const]) {
-    const float size = 600, outline = .5f;
+static void alignText(
+    vec2 position, const float windowX, const float windowY, const char c, const bool alignRight, const bool alignTop
+) {
+    Glyph* const glyph = characters + c - firstChar;
+
+    const float magic = .1f;
+
+    if (alignRight) position[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) / windowX;
+    if (alignTop) position[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) / windowY;
+}
+static void initText(Mesh* const mesh, const char text[const], vec2 position, const bool alignRight, const bool alignTop) {
+    const float size = 200, outline = .5f;
 
     const size_t textLength = strlen(text);
 
     float windowX, windowY;
-
-    vec2 position = GLM_VEC2_ZERO_INIT;
 
     Quad vertices[textLength];
     QuadIndices indices[textLength];
@@ -88,7 +96,9 @@ static void initText(Mesh* const mesh, const char text[const]) {
     windowX /= size;
     windowY /= size;
 
-    for (size_t i = 0; i < textLength; i++) {
+    alignText(position, windowX, windowY, text[0], alignRight, alignTop);
+
+    for (size_t i = alignRight ? textLength - 1 : 0; alignRight ? !ISINVALID(i) : i < textLength; alignRight ? i-- : i++) {
 	const Index3D order[] = {0, 1, 2, 0, 2, 3};
 
 	for (size_t j = 0; j < ARRAYSIZE(order); j++) indices[i][j] = order[j] + (i * 4);
@@ -105,7 +115,7 @@ static void initText(Mesh* const mesh, const char text[const]) {
 	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
 	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
 
-	    position[0] += glyph->advance / windowX;
+	    position[0] += glyph->advance / windowX * (alignRight ? -1.f : 1);
 	}
     }
 
@@ -261,7 +271,7 @@ static void initAmmoText() {
 
     sprintf(string, format, ammoLeft, ammoMag);
 
-    initText(&meshAmmo, string);
+    initText(&meshAmmo, string, (vec2){1, 1}, true, true);
 }
 
 void GUI_Init() {

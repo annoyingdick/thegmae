@@ -1,11 +1,14 @@
 #ifndef Character_h_
 #define Character_h_
 
+#include <math.h>
 #include "InstancesHandler.h"
 #include "Geometry.h"
 #include "vec3Array.h"
 #include "AnimationTrack.h"
 #include "GUI.h"
+
+#define FLOAT_BINONE nextafterf(0, INFINITY)
 
 typedef uint8_t SlotID;
 typedef uint8_t StateID;
@@ -49,8 +52,7 @@ X(SlotID, currentSlot) \
 X(StateID, state) \
 X(bool, areAnimationsLoaded) \
 X(bool, aimTaskLock) \
-X(bool, hasGun) \
-X(bool, updatesGui)
+X(bool, hasGun)
 
 typedef struct Character Character;
 
@@ -64,18 +66,23 @@ VARS_CHARACTER
     vec3 position;
     vec2 direction;
 
-    Character* aimOn;
+    Character* target;
 
     AnimationTrack tracks[ANIMATION_MAX_ENUM];
 };
 
 void Character_Init(Character* character, Mesh* weaponMesh);
 bool Character_CanSeeDotCheck(Character* character, Character* them);
+bool Character_ShouldProcessShot(const Character* character);
 void Character_BeginSprinting(Character* character);
 void Character_StopSprinting(Character* character);
 void Character_ChooseSlot(Character* character, SlotID slot);
 void Character_SwitchAim(Character* character, bool aim);
 void Character_GoTo(Character* character, vec3 goal, TriangleID goalTri);
+void Character_TryInitAnimations(Character* character);
+void Character_HandleFatigue(Character* character);
+//You'd better not use this function alone if your character can shoot. If you do anyway, please adapt this line:
+//if (Character_ShouldProcessShot(character)) character->tracks[WEAPON_ANIMATION_SHOOT].weight = FLOAT_BINONE;
 void Character_Loop(Character* character);
 
 void Character_DrawDebugGui(const Character* character, const char name[]);

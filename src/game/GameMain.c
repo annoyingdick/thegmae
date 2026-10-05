@@ -1,6 +1,7 @@
 #include <SDL3/SDL_Init.h>
 #include <cglm/mat4.h>
-#include "engine/Character.h"
+#include "engine/Player.h"
+#include "engine/Npc.h"
 #include "engine/Camera.h"
 #include "engine/PhysicsSimulationHandler.h"
 #include "engine/Pip.h"
@@ -9,7 +10,7 @@
 #include "TestMeshStreaming.h"
 
 #define NUM_TEST_CUBES 1
-#define NUM_TEST_CHARACTERS 1
+#define NUM_TEST_CHARACTERS 30
 
 static Mesh arrowMesh, cubeMesh, cubeMeshDyn, tlt, navMesh;
 static Mesh weaponMesh;
@@ -71,13 +72,13 @@ void GM_Init() {
 
     Character_Init(&character, &weaponMesh);
 
-    character.hasGun = character.updatesGui = true;
+    character.hasGun = true;
 
     nforeach (Character* const an, angry)
 	Character_Init(an, &weaponMesh);
 	NH_GetRandomPoint(an->position);
 
-	an->hasGun = an - angry > 40;
+	an->hasGun = an - angry == 1;
 
 	Character_ChooseSlot(an, 1);
     forend
@@ -219,7 +220,7 @@ void GM_Loop(const float interp) {
 
     if (interp) {}
 
-    Character_Loop(&character);
+    Player_Loop(&character);
 
     nforeach (Character* const an, angry)
 	if (rand() < 100 && an->hasGun) {
@@ -231,7 +232,7 @@ void GM_Loop(const float interp) {
 	}
 	
 	Character_SwitchAim(an, true);
-	Character_Loop(an);
+	Npc_Loop(an);
     forend
 
     //camera shenaningans

@@ -7,12 +7,9 @@
 #include "WindowHandler.h"
 #include "NavigationHandler.h"
 #include "CharactersHandler.h"
-#include "TaskManager.h"
 #include "DebugGuiHandler.h"
 
-#define DO_NOT_KILL
-
-#define FLOAT_BINONE nextafterf(0, INFINITY)
+//#define DO_NOT_KILL
 
 static AnimationID topAnimationsOrder[] = {
     NOTHING_ANIMATION_DEATH_FROMFRONT,
@@ -72,11 +69,16 @@ static bool isPathLongerThan(Character* const character, const float length) {
 static bool isSwapping(const Character* const character) {
     return character->currentSlot != character->wishSlot;
 }
-static bool canShoot(const Character* const character) {
+static bool shouldTryShoot(const Character* const character) {
     const bool idle = character->tracks[WEAPON_ANIMATION_IDLE].weight > .8f;
     const bool idleSteady = character->tracks[WEAPON_ANIMATION_IDLE_STEADY].weight < .3f;
 
     return character->currentSlot && idle && idleSteady;
+}
+static bool shouldShoot(const Character* const character) {
+    const AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
+
+    return shootTrack->time > shootTrack->animation->duration / 2 && !shootTrack->weight;
 }
 static bool isTired(const Character* const character) {
     const float threshold = .5f;
@@ -247,12 +249,12 @@ static float calculateSpeed(Character* const character) {
 static float getWishDirection(Character* const character, vec3 move, vec3 dest) {
     const float normalSpeed = 5;
 
-    if (character->aimOn && (isStopped(character) || character->state != CHARACTER_STATE_SPRINT)) {
+    if (character->target && (isStopped(character) || character->state != CHARACTER_STATE_SPRINT)) {
 	const float aimingSpeed = 16;
 
 	//if (AnimationTrack_IsFinished(character->tracks + WEAPON_ANIMATION_SHOOT)) character->going2 = 0;
 
-	glm_vec3_sub(character->aimOn->position, character->position, dest);
+	glm_vec3_sub(character->target->position, character->position, dest);
 	glm_vec3_normalize(dest);
 
 	return aimingSpeed;
@@ -353,51 +355,10 @@ static void stopIfStopped(Character* const character) {
 }
 static void workerThrd(Character* const character) {
     //TODO: this can cause DAMAAGE when new characters are added to CH
-    if (character->hasGun) character->aimOn = CH_FindClosestVisibleAliveCharacter(character);
-    else character->aimOn = CH_FindClosestVisibleAliveArmedCharacter(character);
+    if (character->hasGun) character->target = CH_FindClosestVisibleAliveCharacter(character);
+    else character->target = CH_FindClosestVisibleAliveArmedCharacter(character);
 
     character->aimTaskLock = false;
-}
-static void aimOn(Character* const character) {
-    AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
-
-    if (!character->aimTaskLock) {
-	character->aimTaskLock = true;
-
-	workerThrd(character);
-	//TM_AddTask(&(Task){.function = (void*)workerThrd, .argument = character});
-    }
-
-    if (character->aimOn) {
-	if (character->state == CHARACTER_STATE_AIM) {
-	    if (canShoot(character)) {
-		const bool shouldShoot = shootTrack->time > shootTrack->animation->duration / 2 && !shootTrack->weight;
-
-		if (AnimationTrack_IsFinished(shootTrack)) shootTrack->time = shootTrack->weight = 0;
-		else if (shouldShoot && character->aimOn->state != CHARACTER_STATE_DEAD) {
-		    shootTrack->weight = FLOAT_BINONE;
-
-		    if (character->updatesGui) GUI_UpdateAmmoMag(--character->ammoMag);
-#ifndef DO_NOT_KILL
-		    //kill
-		    character->aimOn->state = CHARACTER_STATE_DEAD;
-
-		    character->aimOn->tracks[Character_CanSeeDotCheck(character->aimOn, character)
-		    ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK].weight = FLOAT_BINONE;
-#endif
-		}
-	    }
-	}
-	else if (character->hasGun) Character_SwitchAim(character, true);
-	else if (character->aimOn->hasGun) {
-	    if (!character->tracks[NOTHING_ANIMATION_SCARED].weight) {
-		character->tracks[NOTHING_ANIMATION_SCARED].weight = FLOAT_BINONE;
-	    }
-
-	    Character_GoTo(character, character->aimOn->position, ESCAPE_FROM_DANGER_MODE);
-	    Character_BeginSprinting(character);
-	}
-    }
 }
 static void fadeAnimations(Character* const character) {
     const bool sprintCond = character->state == CHARACTER_STATE_SPRINT && 
@@ -427,21 +388,6 @@ static void fadeAnimations(Character* const character) {
 	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(character->tracks + WEAPON_ANIMATION_WALK))
     );
 }
-static void moveAndAnimate(Character* const character) {
-    mat4 characterMat = GLM_MAT4_IDENTITY_INIT;
-
-    characterMat[0][0] = -character->direction[1];
-    characterMat[0][2] = character->direction[0];
-
-    characterMat[2][0] = -character->direction[0];
-    characterMat[2][2] = -character->direction[1];
-
-    processMove(character);
-
-    glm_vec3_copy(character->position, characterMat[3]);
-
-    handleBone(character, CH_GetMesh()->bones + 0, characterMat, false);
-}
 static void addFatigue(Character* const character) {
     const float factor = .3f;
 
@@ -452,6 +398,19 @@ static void addFatigue(Character* const character) {
 	    || (character->state == CHARACTER_STATE_SPRINT && isStopped(character)) ? -1.f : 1)), 0
 	), 1
     );
+}
+static void animate(Character* const character) {
+    mat4 characterMat = GLM_MAT4_IDENTITY_INIT;
+
+    characterMat[0][0] = -character->direction[1];
+    characterMat[0][2] = character->direction[0];
+
+    characterMat[2][0] = -character->direction[0];
+    characterMat[2][2] = -character->direction[1];
+
+    glm_vec3_copy(character->position, characterMat[3]);
+
+    handleBone(character, CH_GetMesh()->bones, characterMat, false);
 }
 
 void Character_Init(Character* const character, Mesh* const weaponMesh) {
@@ -476,6 +435,10 @@ bool Character_CanSeeDotCheck(Character* const character, Character* const them)
 
     return glm_vec3_dot((vec3){character->direction[0], 0, character->direction[1]}, dir) > 0;
 }
+bool Character_ShouldProcessShot(const Character* character) {
+    return CH_GetMesh()->animations && character->state != CHARACTER_STATE_DEAD
+    && shouldTryShoot(character) && shouldShoot(character);
+}
 void Character_BeginSprinting(Character* const character) {
     if (!isTired(character)) character->state = CHARACTER_STATE_SPRINT;
 }
@@ -492,20 +455,20 @@ void Character_ChooseSlot(Character* const character, const SlotID slot) {
     }
 }
 void Character_SwitchAim(Character* const character, const bool aim) {
-    if (character->hasGun && (!aim || character->aimOn || !isTired(character))) {
+    if (character->hasGun && (!aim || character->target || !isTired(character))) {
 	if (aim && !character->wishSlot) Character_ChooseSlot(character, 1);
 	if (character->state != CHARACTER_STATE_DEAD) character->state = aim ? CHARACTER_STATE_AIM : CHARACTER_STATE_NORMAL;
     }
 }
 void Character_GoTo(Character* const character, vec3 goal, const TriangleID goalTri) {
-    NH_FindPath(
-	character->position, goal, NH_GetClosestTriangle(character->position), 
-	goalTri, &character->path
-    );
+    if (character->state != CHARACTER_STATE_DEAD) {
+	NH_FindPath(
+	    character->position, goal, NH_GetClosestTriangle(character->position), 
+	    goalTri, &character->path
+	);
+    }
 }
-void Character_Loop(Character* const character) {
-    if (!CH_GetMesh()->animations) return;
-
+void Character_TryInitAnimations(Character* const character) {
     if (!character->areAnimationsLoaded) {
 	foreach (const Animation* const animation, CH_GetMesh()->animations, CH_GetMesh()->numAnimations) 
 	    initAnimationPointer(character, animation);
@@ -513,62 +476,113 @@ void Character_Loop(Character* const character) {
 
 	character->areAnimationsLoaded = true;
     }
+}
+void Character_HandleFatigue(Character* const character) {
+    if (CH_GetMesh()->animations && character->state != CHARACTER_STATE_DEAD) {
+	addFatigue(character);
 
-    if (character->state == CHARACTER_STATE_DEAD) {
-	const AnimationTrack* const front = character->tracks + NOTHING_ANIMATION_DEATH_FROMFRONT;
-
-	AnimationTrack* const track = character->tracks + 
-	(front->weight ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK);
-
-	AnimationTrack_GoTillEnd(track);
-	AnimationTrack_FadeIn(track, true);
-
-	character->path.numElements = 0;
-	character->aimOn = NULL;
+	if (character->fatigue == 1 && !character->target) character->state = CHARACTER_STATE_NORMAL;
     }
-    else {
-	AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_IDLE);
-	AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_WALK);
-	AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_SPRINT);
-	AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_SCARED);
-	AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_IDLE);
-	AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_IDLE_STEADY);
-	AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_WALK);
-	AnimationTrack_GoTillEnd(character->tracks + WEAPON_ANIMATION_SHOOT);
+}
+void Character_Loop(Character* const character) {
+    if (CH_GetMesh()->animations) {
+	Character_TryInitAnimations(character);
 
-	if (character->tracks[NOTHING_ANIMATION_SCARED].weight) {
-	    AnimationTrack* const scared = character->tracks + NOTHING_ANIMATION_SCARED;
+	if (character->state == CHARACTER_STATE_DEAD) {
+	    const AnimationTrack* const front = character->tracks + NOTHING_ANIMATION_DEATH_FROMFRONT;
 
-	    const bool isWalking = !isStopped(character) && character->state == CHARACTER_STATE_NORMAL;
-
-	    AnimationTrack_FadeIn(scared, !isWalking);
-
-	    if (isWalking) scared->weight = fmaxf(scared->weight, 1.f / 4);
-	}
-
-	if (isSwapping(character)) {
 	    AnimationTrack* const track = character->tracks + 
-	    (character->currentSlot ? WEAPON_ANIMATION_UNEQUIP : WEAPON_ANIMATION_EQUIP);
+	    (front->weight ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK);
 
-	    track->time += WH_GetDeltaTime();
+	    AnimationTrack_GoTillEnd(track);
+	    AnimationTrack_FadeIn(track, true);
+	}
+	else {
+	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_IDLE);
+	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_WALK);
+	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_SPRINT);
+	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_SCARED);
+	    AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_IDLE);
+	    AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_WALK);
+	    AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_IDLE_STEADY);
+	    AnimationTrack_GoTillEnd(character->tracks + WEAPON_ANIMATION_SHOOT);
 
-	    if (track->time > track->animation->duration) {
-		character->currentSlot = character->currentSlot ? 0 : character->wishSlot;
+	    if (character->tracks[NOTHING_ANIMATION_SCARED].weight) {
+		AnimationTrack* const scared = character->tracks + NOTHING_ANIMATION_SCARED;
+
+		const bool isWalking = !isStopped(character) && character->state == CHARACTER_STATE_NORMAL;
+
+		AnimationTrack_FadeIn(scared, !isWalking);
+
+		if (isWalking) scared->weight = fmaxf(scared->weight, 1.f / 4);
+	    }
+
+	    if (isSwapping(character)) {
+		AnimationTrack* const track = character->tracks + 
+		(character->currentSlot ? WEAPON_ANIMATION_UNEQUIP : WEAPON_ANIMATION_EQUIP);
+
+		track->time += WH_GetDeltaTime();
+
+		if (track->time > track->animation->duration) {
+		    character->currentSlot = character->currentSlot ? 0 : character->wishSlot;
+		}
+	    }
+
+	    fadeAnimations(character);
+	    stopIfStopped(character);
+	    processMove(character);
+
+	    if (!character->aimTaskLock) {
+		character->aimTaskLock = true;
+
+		workerThrd(character);
+		//TM_AddTask(&(Task){.function = (void*)workerThrd, .argument = character});
+	    }
+
+	    if (character->target) {
+		if (character->state == CHARACTER_STATE_AIM) {
+		    if (shouldTryShoot(character)) {
+			AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
+
+			if (AnimationTrack_IsFinished(shootTrack)) shootTrack->time = shootTrack->weight = 0;
+		    }
+		}
+		else if (character->hasGun) Character_SwitchAim(character, true);
+		else if (character->target->hasGun) {
+		    if (!character->tracks[NOTHING_ANIMATION_SCARED].weight) {
+			character->tracks[NOTHING_ANIMATION_SCARED].weight = FLOAT_BINONE;
+		    }
+
+		    Character_GoTo(character, character->target->position, ESCAPE_FROM_DANGER_MODE);
+		    Character_BeginSprinting(character);
+		}
+	    }
+
+	    if (Character_ShouldProcessShot(character)) {
+		character->ammoMag--;
+
+		if (character->target) {
+		    //actually hit
+#ifndef DO_NOT_KILL
+		    //kill
+		    character->target->state = CHARACTER_STATE_DEAD;
+
+		    character->target->tracks[Character_CanSeeDotCheck(character->target, character)
+		    ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK].weight = FLOAT_BINONE;
+
+		    character->target->target = NULL;
+
+		    character->target->path.numElements = 0;
+#endif
+		}
 	    }
 	}
 
-	fadeAnimations(character);
-	stopIfStopped(character);
-	aimOn(character);
-	addFatigue(character);
-
-	if (character->fatigue == 1 && !character->aimOn) character->state = CHARACTER_STATE_NORMAL;
+	animate(character);
     }
-
-    moveAndAnimate(character);
 }
 
-DGH_BEGIN(Character, character, 16) {
+DGH_BEGIN(Character, character, 18) {
     DGH_ARRAYT(character->path);
 
 #define X(type, name) DGH_FIELD(character->name);
@@ -578,6 +592,6 @@ DGH_BEGIN(Character, character, 16) {
     DGH_Vec3(character->position, "position:");
     DGH_Vec2(character->direction, "direction:");
 
-    DGH_PTR(character->aimOn);
+    DGH_PTR(character->target);
     DGH_ARRAYN(character->tracks);
 DGH_END }

@@ -12,7 +12,7 @@
 #define NUM_TEST_CUBES 1
 #define NUM_TEST_CHARACTERS 30
 
-static Mesh arrowMesh, cubeMesh, cubeMeshDyn, tlt, navMesh;
+static Mesh cubeMeshDyn, tlt, navMesh;
 static Mesh weaponMesh;
 static Character character, angry[NUM_TEST_CHARACTERS];
 static ShaderProgram linesProgram;
@@ -64,9 +64,7 @@ static void specifyLinesWidth() {
 void GM_Init() {
     const Geometry* const navgeo = NH_GetGeometry();
 
-    Mesh_Init(&cubeMesh, GRAPHICS_PIPELINE_STATIC, "cube.gltf");
     Mesh_Init(&cubeMeshDyn, GRAPHICS_PIPELINE_INTERP, "deagle.gltf");
-    Mesh_Init(&arrowMesh, GRAPHICS_PIPELINE_INTERP, "arrow.gltf");
     Mesh_Init(&navMesh, GRAPHICS_PIPELINE_STATIC, "nav.gltf");
     Mesh_Init(&weaponMesh, GRAPHICS_PIPELINE_NORMAL, "deagle.gltf");
 
@@ -244,7 +242,7 @@ void GM_Loop(const float interp) {
 
     Camera_SetLookAtPosition(cameraPos);
 
-    TestMeshStreaming_Loop();
+    //TestMeshStreaming_Loop();
 
     if (Mesh_IsValid(&tlt)) {
 	const mat4 mat = GLM_MAT4_IDENTITY_INIT;

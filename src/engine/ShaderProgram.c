@@ -8,6 +8,12 @@
 
 #define GLERROR_INFO_SIZE 512
 
+#define MAKE_PROGRAM const GLuint shaders[] = { X }; \
+*sp = glCreateProgram(); \
+nforeach (const GLuint* const shader, shaders) glAttachShader(*sp, *shader); forend \
+finishProgram(*sp); \
+nforeach (const GLuint* const shader, shaders) glDeleteShader(*shader); forend
+
 typedef struct {
     GLint size;
 
@@ -126,46 +132,37 @@ static void finishProgram(const GLuint program) {
 }
 
 void ShaderProgram_Init_VF(ShaderProgram* const sp, const ShaderProgramInitInfo_VF info) {
-    const GLuint vertShader = createShader(GL_VERTEX_SHADER, info.vertexShaderSourceFileName);
-    const GLuint fragShader = createShader(GL_FRAGMENT_SHADER, info.fragmentShaderSourceFileName);
+#define X \
+    createShader(GL_VERTEX_SHADER, info.vertexShaderSourceFileName), \
+    createShader(GL_FRAGMENT_SHADER, info.fragmentShaderSourceFileName)
 
-    sp->pro = glCreateProgram();
-
-    glAttachShader(sp->pro, vertShader);
-    glAttachShader(sp->pro, fragShader);
-
-    finishProgram(sp->pro);
-
-    glDeleteShader(vertShader);
-    glDeleteShader(fragShader);
+    MAKE_PROGRAM
+#undef X
 }
 void ShaderProgram_Init_VFTess(ShaderProgram* const sp, const ShaderProgramInitInfo_VFTess info) {
-    const GLuint shaders[] = {
-	createShader(GL_VERTEX_SHADER, info.vfInfo.vertexShaderSourceFileName),
-	createShader(GL_FRAGMENT_SHADER, info.vfInfo.fragmentShaderSourceFileName),
-	createShader(GL_TESS_CONTROL_SHADER, info.controlShaderSourceFileName),
-	createShader(GL_TESS_EVALUATION_SHADER, info.evaluationShaderSourceFileName)
-    };
+#define X \
+    createShader(GL_VERTEX_SHADER, info.vfInfo.vertexShaderSourceFileName), \
+    createShader(GL_FRAGMENT_SHADER, info.vfInfo.fragmentShaderSourceFileName), \
+    createShader(GL_TESS_CONTROL_SHADER, info.controlShaderSourceFileName), \
+    createShader(GL_TESS_EVALUATION_SHADER, info.evaluationShaderSourceFileName)
 
-    sp->pro = glCreateProgram();
+    MAKE_PROGRAM
+#undef X
+}
+void ShaderProgram_Init_VFG(ShaderProgram* const sp, const ShaderProgramInitInfo_VFG info) {
+#define X \
+    createShader(GL_VERTEX_SHADER, info.vfInfo.vertexShaderSourceFileName), \
+    createShader(GL_FRAGMENT_SHADER, info.vfInfo.fragmentShaderSourceFileName), \
+    createShader(GL_GEOMETRY_SHADER, info.geometryShaderSourceFileName)
 
-    nforeach (const GLuint* const shader, shaders) glAttachShader(sp->pro, *shader); forend
-
-    finishProgram(sp->pro);
-
-    nforeach (const GLuint* const shader, shaders) glDeleteShader(*shader); forend
+    MAKE_PROGRAM
+#undef X
 }
 void ShaderProgram_Init_Compute(ShaderProgram* const sp, const ShaderProgramInitInfo_Compute info) {
-    const GLuint shader = createShader(GL_COMPUTE_SHADER, info.sourceFileName);
-
-    sp->pro = glCreateProgram();
-
-    glAttachShader(sp->pro, shader);
-
-    finishProgram(sp->pro);
-
-    glDeleteShader(shader);
+#define X createShader(GL_COMPUTE_SHADER, info.sourceFileName)
+    MAKE_PROGRAM
+#undef X
 }
 void ShaderProgram_Use(const ShaderProgram sp) {
-    glUseProgram(sp.pro);
+    glUseProgram(sp);
 }

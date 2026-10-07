@@ -1,7 +1,7 @@
 #include "Uniform.h"
 
 void Uniform_Init(Uniform* const uniform, const ShaderProgram sp, const char name[const]) {
-    uniform->location = glGetUniformLocation(sp.pro, name);
+    uniform->location = glGetUniformLocation(sp, name);
 }
 void Uniform_Set_1UI(const Uniform uniform, const GLuint value) {
     glUniform1ui(uniform.location, value);

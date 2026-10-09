@@ -2,7 +2,7 @@
 
 struct Vertex {
     float position[3], direction[3];
-    float timestamp;
+    float timestamp, tex;
 };
 
 layout (binding = 0, std430) readonly buffer verticesBuffer {

@@ -235,9 +235,16 @@ static void initPipelines() {
 static void updateUniforms() {
     mat4 mats[2];
 
+    mat4 inv;
+
     glm_mat4_copy(pvMat, mats[0]);
 
     Camera_GetPerspectiveCameraMatrix(GLM_MAT4_IDENTITY, mats[1]);
+
+    glm_mat4_inv(mats[1], inv);
+    glm_vec3_copy(inv[3], mats[1][3]);
+
+    //glm_mat4_print(mats[1], stdout);
 
     //mats[1][2][2] = -mats[1][2][2];
 

@@ -1,9 +1,12 @@
+#include "TexturesHandler.h"
 #include "Pip.h"
 #include "BillboardPip.h"
 
 #define INIT_NUM_VERTICES 2
 
-#define VERTEX_SIZE (2 * sizeof(vec3) + sizeof(float))
+#define VERTEX_SIZE (2 * sizeof(vec3) + 2 * sizeof(float))
+
+static float texture;
 
 void BillboardPip_Init(BillboardPip* const pip) {
     Arena_Init(&pip->verticesArena, INIT_NUM_VERTICES);
@@ -14,11 +17,13 @@ void BillboardPip_Init(BillboardPip* const pip) {
 	.vfInfo = {.vertexShaderSourceFileName = "billboard.vert", .fragmentShaderSourceFileName = "normal.frag"},
 	.geometryShaderSourceFileName = "billboard.geom"
     });
+
+    texture = (float)TexturesHandler_BeginLoadingTask("muzzle", "textures/muzzle.png");
 }
 BillboardID BillboardPip_NewBillboard(BillboardPip* const pip, vec3 position, vec3 direction) {
     const RegionSize oldSize = pip->verticesArena.size;
 
-    const float data[] = {VEC3DUP(position), VEC3DUP(direction), 0};
+    const float data[] = {VEC3DUP(position), VEC3DUP(direction), 0, texture};
 
     Region region;
 
@@ -29,7 +34,7 @@ BillboardID BillboardPip_NewBillboard(BillboardPip* const pip, vec3 position, ve
 	&pip->verticesBuffer, oldSize * VERTEX_SIZE, newSize * VERTEX_SIZE, GL_DYNAMIC_STORAGE_BIT
     ));
 
-    GL_CHECK(GPUBuffer_SubData(pip->verticesBuffer, region.position * VERTEX_SIZE, region.size * VERTEX_SIZE, data));
+    GL_CHECK(GPUBuffer_SubData(pip->verticesBuffer, region.position * VERTEX_SIZE, sizeof(data), data));
 
     return region.position;
 }

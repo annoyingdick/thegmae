@@ -9,7 +9,5 @@ layout (binding = $BUFFER_BINDING_INSTANCES_DATA$, std430) buffer instancesDataB
 }; \
 layout (binding = $BUFFER_BINDING_USED_INSTANCES_IDS$, std430) writeonly buffer usedInstancesIdsBuffer { \
     uint usedInstancesIds[]; \
-}; \
-layout (binding = 0) uniform uniforms { \
-    mat4 pvMat; \
-}
+};
+#include "uniforms.glsl"

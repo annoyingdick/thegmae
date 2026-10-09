@@ -17,9 +17,7 @@ struct InstanceData {
 DECLARE_COMMANDS(readonly);
 DECLARE_PROCESS_VERTICES_BUFFERS(InstanceData);
 
-layout (binding = 0) uniform uniforms {
-    mat4 pvMat;
-};
+#include "uniforms.glsl"
 
 out float height;
 out vec2 texcoord;

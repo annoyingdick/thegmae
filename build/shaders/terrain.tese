@@ -2,9 +2,7 @@
 
 layout (quads, fractional_odd_spacing, ccw) in;
 
-layout (binding = 0) uniform uniforms {
-    mat4 pvMat;
-};
+#include "uniforms.glsl"
 
 out float height;
 

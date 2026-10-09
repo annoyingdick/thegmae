@@ -9,8 +9,6 @@
 #define INIT_NUM_VERTICES 2
 #define INIT_NUM_MESHES 2
 
-static GPUBuffer uniformsBuffer;
-
 static ShaderProgram clearCommandsProgram, newInstanceProgram, deleteInstanceProgram;
 static Uniform baseMeshIdUniform_newInstance, baseMeshIdUniform_deleteInstance;
 
@@ -41,18 +39,12 @@ static void uploadCommandData(const Pip* const pip, const RegionPosition meshId,
 }
 
 void Pip_PreInit() {
-    GL_CHECK(GPUBuffer_Init(&uniformsBuffer, sizeof(mat4), GL_DYNAMIC_STORAGE_BIT));
-    GL_CHECK(GPUBuffer_BindBase(uniformsBuffer, GL_UNIFORM_BUFFER, 0));
-
     ShaderProgram_Init_Compute(&clearCommandsProgram, (ShaderProgramInitInfo_Compute){"clearCommands.comp"});
     ShaderProgram_Init_Compute(&newInstanceProgram, (ShaderProgramInitInfo_Compute){"newInstance.comp"});
     ShaderProgram_Init_Compute(&deleteInstanceProgram, (ShaderProgramInitInfo_Compute){"deleteInstance.comp"});
 
     Uniform_Init(&baseMeshIdUniform_newInstance, newInstanceProgram, "baseMeshId");
     Uniform_Init(&baseMeshIdUniform_deleteInstance, deleteInstanceProgram, "baseMeshId");
-}
-void Pip_PreRun(const mat4 pvMat) {
-    GL_CHECK(GPUBuffer_SubData(uniformsBuffer, 0, sizeof(mat4), pvMat));
 }
 
 void Pip_Init(Pip* const pip, const PipInitInfo info) {

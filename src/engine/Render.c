@@ -7,6 +7,7 @@
 #include "TexturesHandler.h"
 #include "ModelsHandler.h"
 #include "DebugGuiHandler.h"
+#include "BillboardPip.h"
 #include "Render.h"
 
 #define DO_OPENGL_DEBUG
@@ -15,6 +16,8 @@
 //#define NOT_SHOW_TEXTURES
 
 #define INIT_NUM_INDICES 2
+
+#define UNIFORMS_SIZE (2 * sizeof(mat4))
 
 #define CHECKINIT(x) if (!indicesArena.size) throwFatal("Render is not initialized!", x)
 #define FLUSH_DYNAMIC_PIPELINE_BUFFER(x) GL_CHECK(glFlushMappedNamedBufferRange( \
@@ -26,8 +29,9 @@
 //Compiler at any moment can rearrange any of the variables below so be careful!
 //These buffers can be updated by CPU (GL_DYNAMIC_STORAGE)
 static Arena indicesArena;
-static GPUBuffer indicesBuffer, textureHandlesBuffer; //private
+static GPUBuffer indicesBuffer, textureHandlesBuffer, uniformsBuffer; //private
 static Uniform interpUniform; //private
+static BillboardPip billboardPip;
 
 static GLuint globalVao; //private
 static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInterpIndex;
@@ -225,6 +229,19 @@ static void initPipelines() {
 	    .vertexSize = pipelinesVertexSizes[i + NUM_DYNAMIC_PIPELINES]
 	});
     }
+
+    BillboardPip_Init(&billboardPip);
+}
+static void updateUniforms() {
+    mat4 mats[2];
+
+    glm_mat4_copy(pvMat, mats[0]);
+
+    Camera_GetPerspectiveCameraMatrix(GLM_MAT4_IDENTITY, mats[1]);
+
+    //mats[1][2][2] = -mats[1][2][2];
+
+    GL_CHECK(GPUBuffer_SubData(uniformsBuffer, 0, sizeof(mats), mats));
 }
 
 void R_Init() {
@@ -260,6 +277,12 @@ void R_Init() {
     Pip_PreInit();
 
     initPipelines();
+
+    GL_CHECK(GPUBuffer_Init(&uniformsBuffer, UNIFORMS_SIZE, GL_DYNAMIC_STORAGE_BIT));
+    GL_CHECK(GPUBuffer_BindBase(uniformsBuffer, GL_UNIFORM_BUFFER, 0));
+
+    BillboardPip_NewBillboard(&billboardPip, GLM_VEC3_ZERO, GLM_YUP);
+    BillboardPip_NewBillboard(&billboardPip, (vec3){2, 0, -1}, GLM_XUP);
 
     Uniform_Init(
 	&interpUniform, 
@@ -397,10 +420,10 @@ void R_Loop(const float interp) {
 
     GPUBuffer_Bind(indicesBuffer, GL_ELEMENT_ARRAY_BUFFER);
 
+    updateUniforms();
+
     ShaderProgram_Use(dynamics[GRAPHICS_PIPELINE_INTERP].base.processInstancesProgram);
     Uniform_Set_1F(interpUniform, interp);
-
-    Pip_PreRun(pvMat);
 
     FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_NORMAL);
     PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_NORMAL, readNormalIndex);
@@ -411,6 +434,9 @@ void R_Loop(const float interp) {
 
     PipStatic_Run(statics + 0);
 
+    BillboardPip_Run(&billboardPip);
+
+    //gui
     glClear(GL_DEPTH_BUFFER_BIT);
     PipStatic_Run(statics + 1);
 

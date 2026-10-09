@@ -19,9 +19,17 @@ X(BUFFER_BINDING_USED_INSTANCES_IDS) \
 X(BUFFER_BINDING_INSTANCES_MESH_IDS) \
 X(BUFFER_BINDING_TERRAIN_VERTICES)
 
+#ifdef DEBUG
 #define GL_CHECK(x) do { glGetError(); x; if (glGetError() != GL_NO_ERROR) { \
     puts("\nWARNING: AN ERROR HAS OCCURRED IN THIS OPENGL FUNCTION:\n"#x" in "__FILE_NAME__"\n"); \
 }} while (0)
+#else
+#define GL_CHECK(x) x
+#endif
+
+#define VEC3DUP(x) x[0], x[1], x[2]
+#define VEC4DUP(x) x[0], x[1], x[2], x[3]
+#define MAT4DUP(x) VEC4DUP(x[0]), VEC4DUP(x[1]), VEC4DUP(x[2]), VEC4DUP(x[3])
 
 typedef struct {
     Arena verticesArena, commandsArena;
@@ -48,7 +56,6 @@ enum {
 };
 
 void Pip_PreInit();
-void Pip_PreRun(const mat4 pvMat);
 
 void Pip_Init(Pip* pip, PipInitInfo info);
 void Pip_UploadVertices(Pip* pip, GLsizeiptr vertexSize, UploadVerticesInfo info);

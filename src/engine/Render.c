@@ -230,7 +230,7 @@ static void initPipelines() {
 	});
     }
 
-    BillboardPip_Init(&billboardPip);
+    BillboardPip_Init(&billboardPip, "billboard.geom", "textures/muzzle.png", "textures/muzzleface.png");
 }
 static void updateUniforms() {
     mat4 mats[2];
@@ -288,7 +288,6 @@ void R_Init() {
     GL_CHECK(GPUBuffer_Init(&uniformsBuffer, UNIFORMS_SIZE, GL_DYNAMIC_STORAGE_BIT));
     GL_CHECK(GPUBuffer_BindBase(uniformsBuffer, GL_UNIFORM_BUFFER, 0));
 
-    BillboardPip_NewBillboard(&billboardPip, GLM_VEC3_ZERO, GLM_YUP);
     BillboardPip_NewBillboard(&billboardPip, (vec3){2, 0, -1}, GLM_XUP);
 
     Uniform_Init(
@@ -420,7 +419,7 @@ void R_Loop(const float interp) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glDepthFunc(GL_LESS);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glClear(GL_COLOR_BUFFER_BIT + GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(globalVao);
@@ -441,8 +440,9 @@ void R_Loop(const float interp) {
 
     PipStatic_Run(statics + 0);
 
+    //BillboardPip_Run(&quadPip);
     BillboardPip_Run(&billboardPip);
-
+ 
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);
     PipStatic_Run(statics + 1);

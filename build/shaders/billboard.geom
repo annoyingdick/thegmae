@@ -1,7 +1,7 @@
 #version 460 core
 
 layout (points) in;
-layout (triangle_strip, max_vertices = 4) out;
+layout (triangle_strip, max_vertices = 8) out;
 
 struct Vertex {
     float position[3], direction[3];
@@ -16,34 +16,45 @@ layout (binding = 0, std430) readonly buffer verticesBuffer {
 
 out vec2 texcoord;
 
-vec3 todirection(const Vertex vert) {
-    return vec3(vert.direction[0], vert.direction[1], vert.direction[2]);
-}
+void makeMuzzle(const float face, const vec3 cam, const vec3 direction) {
+    const Vertex vert = verts[gl_PrimitiveIDIn];
 
-void main() {
-    const vec3 cam = normalize(gl_in[0].gl_Position.xyz - viewMat[3].xyz);
+    const vec4 rl = vec4(cross(direction, mix(cam, vec3(0, 1, 0), face)), 0);
+    const vec4 up = vec4(mix(direction, cross(direction, rl.xyz), face), 0);
 
-    const vec4 right = vec4(cross(todirection(verts[gl_PrimitiveIDIn]), cam), 0);
+    vec4 pos = gl_in[0].gl_Position - rl / 2 - mix(vec4(0), up / 2, face);
 
-    const vec4 pos = gl_in[0].gl_Position - right / 2;
-
-    texcoord = vec2(verts[gl_PrimitiveIDIn].tex, 0);
+    texcoord = vec2(vert.tex + face, 0);
     gl_Position = pvMat * pos;
     EmitVertex();
 
     texcoord.t = 1;
-    gl_Position = pvMat * (pos + right);
+    gl_Position = pvMat * (pos + rl);
     EmitVertex();
 
+    pos += up;
+
     texcoord.t = 0;
-    texcoord.s += 1;
-    gl_Position = pvMat * (pos + vec4(todirection(verts[gl_PrimitiveIDIn]), 0));
+    texcoord.s += 0.99; //the fucking floating point errors
+    gl_Position = pvMat * pos;
     EmitVertex();
 
     texcoord.t = 1;
     //texcoord.s += 1;
-    gl_Position = pvMat * (pos + right + vec4(todirection(verts[gl_PrimitiveIDIn]), 0));
+    gl_Position = pvMat * (pos + rl);
     EmitVertex();
 
     EndPrimitive();
+}
+
+void main() {
+    const Vertex vert = verts[gl_PrimitiveIDIn];
+
+    const vec3 direction = vec3(vert.direction[0], vert.direction[1], vert.direction[2]);
+    const vec3 cam = normalize(gl_in[0].gl_Position.xyz - viewMat[3].xyz);
+
+    const float face = step(0, dot(cam, direction));
+
+    makeMuzzle(1 - face, cam, direction);
+    makeMuzzle(face, cam, direction);
 }

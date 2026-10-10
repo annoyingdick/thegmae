@@ -15,4 +15,6 @@ void main() {
 
     if (texcoord.x == 0 && texcoord.y == 0) finalcolor = vec4(1);
     else finalcolor = texture(textures[uint(texcoord.x)], normTexCoord);
+
+    //if (finalcolor.a < 0.8) discard;
 }

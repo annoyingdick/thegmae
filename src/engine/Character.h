@@ -63,7 +63,7 @@ struct Character {
 VARS_CHARACTER
 #undef X
 
-    vec3 position;
+    vec3 position, muzzlePosition;
     vec2 direction;
 
     Character* target;

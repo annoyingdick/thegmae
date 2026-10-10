@@ -14,13 +14,21 @@ layout (binding = 0, std430) readonly buffer verticesBuffer {
 
 #include "uniforms.glsl"
 
+uniform float currentTime;
+
 out vec2 texcoord;
 
 void makeMuzzle(const float face, const vec3 cam, const vec3 direction) {
     const Vertex vert = verts[gl_PrimitiveIDIn];
 
-    const vec4 rl = vec4(cross(direction, mix(cam, vec3(0, 1, 0), face)), 0);
-    const vec4 up = vec4(mix(direction, cross(direction, rl.xyz), face), 0);
+    const float progress = mod(currentTime - vert.timestamp, 1) * 3.1415, size = progress * progress * sin(progress) / 4;
+
+    vec4 rl = vec4(cross(direction, mix(cam, vec3(0, 1, 0), face)), 0);
+
+    //maagic
+    const vec4 up = vec4(mix(direction * progress * (size + 1) / 4, cross(direction, rl.xyz) * size, face), 0);
+
+    rl *= size;
 
     vec4 pos = gl_in[0].gl_Position - rl / 2 - mix(vec4(0), up / 2, face);
 

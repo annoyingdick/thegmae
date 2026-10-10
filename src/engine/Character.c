@@ -78,7 +78,7 @@ static bool shouldTryShoot(const Character* const character) {
 static bool shouldShoot(const Character* const character) {
     const AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
 
-    return shootTrack->time > shootTrack->animation->duration / 2 && !shootTrack->weight;
+    return shootTrack->time > shootTrack->animation->duration / 3 && !shootTrack->weight;
 }
 static bool isTired(const Character* const character) {
     const float threshold = .5f;
@@ -145,7 +145,7 @@ static void multiplyAnimation(const AnimationTrack* const track, const BoneID bo
     glm_quat_mat4(mulRot, mat);
     glm_mat4_mul(transform, mat, transform);
 }
-static void handleBone(const Character* const character, Bone* const bone, mat4 parentTransform, bool isTop) {
+static void handleBone(Character* const character, Bone* const bone, mat4 parentTransform, bool isTop) {
     mat4 transform;
     vec3 finalTrans = GLM_VEC3_ZERO_INIT;
     versor finalRot = GLM_QUAT_IDENTITY_INIT;
@@ -200,7 +200,10 @@ static void handleBone(const Character* const character, Bone* const bone, mat4 
     glm_mat4_mul(parentTransform, transform, transform);
 
     if (!strcmp(bone->name, "mixamorig:RightHand")) {
-	if (character->currentSlot) glm_mat4_copy(transform, IH_GetUploadPtr(character->weaponInstance));
+	if (character->currentSlot) {
+	    glm_mat4_copy(transform, IH_GetUploadPtr(character->weaponInstance));
+	    glm_vec3_add(transform[3], VEC2XZ(character->direction, 1 / 3), character->muzzlePosition);
+	}
 	else glm_mat4_zero(IH_GetUploadPtr(character->weaponInstance));
     }
 
@@ -433,7 +436,7 @@ bool Character_CanSeeDotCheck(Character* const character, Character* const them)
 
     glm_vec3_sub(them->position, character->position, dir);
 
-    return glm_vec3_dot((vec3){character->direction[0], 0, character->direction[1]}, dir) > 0;
+    return glm_vec3_dot(VEC2XZ(character->direction, 1), dir) > 0;
 }
 bool Character_ShouldProcessShot(const Character* character) {
     return CH_GetMesh()->animations && character->state != CHARACTER_STATE_DEAD
@@ -559,6 +562,8 @@ void Character_Loop(Character* const character) {
 	    }
 
 	    if (Character_ShouldProcessShot(character)) {
+		R_NewMuzzleFlash(character->muzzlePosition, VEC2XZ(character->direction, 1 / 2));
+
 		character->ammoMag--;
 
 		if (character->target) {

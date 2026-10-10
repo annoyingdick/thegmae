@@ -27,6 +27,7 @@ X(BUFFER_BINDING_TERRAIN_VERTICES)
 #define GL_CHECK(x) x
 #endif
 
+#define VEC2XZ(x, a) (vec3){x[0] * a, 0, x[1] * a}
 #define VEC3DUP(x) x[0], x[1], x[2]
 #define VEC4DUP(x) x[0], x[1], x[2], x[3]
 #define MAT4DUP(x) VEC4DUP(x[0]), VEC4DUP(x[1]), VEC4DUP(x[2]), VEC4DUP(x[3])

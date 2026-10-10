@@ -288,8 +288,6 @@ void R_Init() {
     GL_CHECK(GPUBuffer_Init(&uniformsBuffer, UNIFORMS_SIZE, GL_DYNAMIC_STORAGE_BIT));
     GL_CHECK(GPUBuffer_BindBase(uniformsBuffer, GL_UNIFORM_BUFFER, 0));
 
-    BillboardPip_NewBillboard(&billboardPip, (vec3){2, 0, -1}, GLM_XUP);
-
     Uniform_Init(
 	&interpUniform, 
 	dynamics[GRAPHICS_PIPELINE_INTERP].base.processInstancesProgram, "interp"
@@ -404,6 +402,9 @@ void R_SetViewportSize(const int width, const int height) {
     glViewport(0, 0, width, height);
 
     setPerspectiveMatrix((float)width / (float)height);
+}
+void R_NewMuzzleFlash(vec3 position, vec3 direction) {
+    BillboardPip_NewBillboard(&billboardPip, position, direction);
 }
 void R_Loop_UpdatePVMat() {
     Camera_GetPerspectiveCameraMatrix(perspectiveMat, pvMat);

@@ -87,18 +87,20 @@ static void offsetIndices(Index3D indices[const], const GLuint startIndex, const
     for (GLuint i = startIndex; i < startIndex + count; i++) indices[i] += offset;
 }
 static void handlePositionAttribute(
-    float vertices[const], AABB bounding, const cgltf_attribute* const attribute, const size_t numFloatsVertex
+    float vertices[const], AABB bounding, vec3 highestPoint, 
+    const cgltf_attribute* const attribute, const size_t numFloatsVertex
 ) {
     for (cgltf_size i = 0; i < attribute->data->count; i++) {
 	const cgltf_size di = i * VERTEX_POSITIONS_SIZE;
 
-	const float* const position = (const float*)viewAccessor(attribute->data) + di;
+	float* const position = (float*)viewAccessor(attribute->data) + di;
 
 	//bounding box
 	if (bounding) {
 	    glm_vec3_minv(bounding[0], (float*)position, bounding[0]);
 	    glm_vec3_maxv(bounding[1], (float*)position, bounding[1]);
 	}
+	if (highestPoint && position[1] > highestPoint[1]) glm_vec3_copy(position, highestPoint);
 
 	memcpy(
 	    vertices + (i * numFloatsVertex) + VERTEX_POSITIONS_OFFSET, 
@@ -112,14 +114,14 @@ static void workerThrd(TaskLoadModel* const task) {
     task->data = data;
 }
 static void handleAttribute(
-    float vertices[const], AABB bounding, const cgltf_attribute* const attribute, 
+    float vertices[const], AABB bounding, vec3 highestPoint, const cgltf_attribute* const attribute, 
     const size_t numFloatsVertex, const float texid
 ) {
     const float* const data = viewAccessor(attribute->data);
 
     switch (attribute->type) {
     case cgltf_attribute_type_position:
-	handlePositionAttribute(vertices, bounding, attribute, numFloatsVertex);
+	handlePositionAttribute(vertices, bounding, highestPoint, attribute, numFloatsVertex);
 
 	break;
     case cgltf_attribute_type_texcoord:
@@ -290,8 +292,8 @@ static void loadMesh(const TaskLoadModel* const task) {
 		|| info->pipId == GRAPHICS_PIPELINE_SKINNED) {
 		//pointer math is beautiful
 		handleAttribute(
-		    vertices + (numVertices * numFloatsVertex), NULL, 
-		    primitive->attributes + j, numFloatsVertex, texid
+		    vertices + (numVertices * numFloatsVertex), NULL, mesh->highestPoint,
+		    primitive->attributes + j, numFloatsVertex, (float)texid
 		);
 	    }
 	}
@@ -341,7 +343,7 @@ void ModelsHandler_LoadGeometry(const char fileName[const], ModelGeometry* const
 
 	for (cgltf_size j = 0; j < primitive->attributes_count; j++) {
 	    if (primitive->attributes[i].type == cgltf_attribute_type_position) {
-		handlePositionAttribute(outGeometry->vertices[0], NULL, primitive->attributes + i, 3);
+		handlePositionAttribute(outGeometry->vertices[0], NULL, NULL, primitive->attributes + i, 3);
 
 		break;
 	    }

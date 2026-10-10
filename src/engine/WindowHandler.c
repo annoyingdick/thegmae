@@ -10,6 +10,8 @@
 #include "GUI.h"
 #include "WindowHandler.h"
 
+#define SPEEDUP_FACTOR 1
+
 #define THROWERROR(t, m) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, t, m, window); exit(EXIT_FAILURE);
 
 #define SDL_CHECK(x) do {if (!(x)) { \
@@ -197,7 +199,7 @@ void WH_GetWindowSize(float* const width, float* const height) {
     *height = (float)h;
 }
 float WH_GetDeltaTime() {
-    return (float)deltaTime / NANOSECONDS_IN_ONE_SECOND;
+    return (float)deltaTime / NANOSECONDS_IN_ONE_SECOND * SPEEDUP_FACTOR;
 }
 bool WH_IsEditorOn() {
     return false;

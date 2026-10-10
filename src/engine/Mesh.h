@@ -37,6 +37,7 @@ VARS_MESH
 #undef X
 
     AABB bounding;
+    vec3 highestPoint;
 
     Animation* animations;
     TextureID* usedTextures;

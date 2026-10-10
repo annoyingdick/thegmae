@@ -53,7 +53,7 @@ BillboardID BillboardPip_NewBillboard(BillboardPip* const pip, vec3 position, ve
     return region.position;
 }
 void BillboardPip_Run(BillboardPip* const pip) {
-    const float timemult = 24;
+    const float timemult = 20;
 
     pip->time += WH_GetDeltaTime() * timemult;
 

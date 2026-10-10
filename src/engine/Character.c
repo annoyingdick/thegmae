@@ -78,7 +78,9 @@ static bool shouldTryShoot(const Character* const character) {
 static bool shouldShoot(const Character* const character) {
     const AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
 
-    return shootTrack->time > shootTrack->animation->duration / 3 && !shootTrack->weight;
+    const float factor = 5;
+
+    return shootTrack->time > shootTrack->animation->duration / factor && !shootTrack->weight;
 }
 static bool isTired(const Character* const character) {
     const float threshold = .5f;
@@ -202,7 +204,9 @@ static void handleBone(Character* const character, Bone* const bone, mat4 parent
     if (!strcmp(bone->name, "mixamorig:RightHand")) {
 	if (character->currentSlot) {
 	    glm_mat4_copy(transform, IH_GetUploadPtr(character->weaponInstance));
-	    glm_vec3_add(transform[3], VEC2XZ(character->direction, 1 / 3), character->muzzlePosition);
+	    glm_mat4_mulv3(transform, character->localMuzzlePosition, 1, character->muzzlePosition);
+
+	    //glm_vec3_add(transform[3], VEC2XZ(character->direction, 1 / 3), character->muzzlePosition);
 	}
 	else glm_mat4_zero(IH_GetUploadPtr(character->weaponInstance));
     }
@@ -430,6 +434,8 @@ void Character_Init(Character* const character, Mesh* const weaponMesh) {
     character->tracks[WEAPON_ANIMATION_SHOOT].time = INFINITY;
 
     character->areAnimationsLoaded = false;
+
+    character->localMuzzlePosition = weaponMesh->highestPoint;
 }
 bool Character_CanSeeDotCheck(Character* const character, Character* const them) {
     vec3 dir;
@@ -562,7 +568,7 @@ void Character_Loop(Character* const character) {
 	    }
 
 	    if (Character_ShouldProcessShot(character)) {
-		R_NewMuzzleFlash(character->muzzlePosition, VEC2XZ(character->direction, 1 / 2));
+		R_NewMuzzleFlash(character->muzzlePosition, VEC2XZ(character->direction, 1));
 
 		character->ammoMag--;
 

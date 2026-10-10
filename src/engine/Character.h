@@ -67,6 +67,7 @@ VARS_CHARACTER
     vec2 direction;
 
     Character* target;
+    float* localMuzzlePosition;
 
     AnimationTrack tracks[ANIMATION_MAX_ENUM];
 };

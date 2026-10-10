@@ -76,7 +76,7 @@ void GM_Init() {
 	Character_Init(an, &weaponMesh);
 	NH_GetRandomPoint(an->position);
 
-	an->hasGun = an - angry == 1;
+	an->hasGun = an - angry != 100000;
 
 	Character_ChooseSlot(an, 1);
     forend

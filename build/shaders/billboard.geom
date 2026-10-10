@@ -21,12 +21,15 @@ out vec2 texcoord;
 void makeMuzzle(const float face, const vec3 cam, const vec3 direction) {
     const Vertex vert = verts[gl_PrimitiveIDIn];
 
-    const float progress = mod(currentTime - vert.timestamp, 1) * 3.1415, size = progress * progress * sin(progress) / 4;
+    const float sizedivfactor = 2;
+
+    const float progress = mod(currentTime - vert.timestamp, 1) * 3.1415;
+    const float size = progress * progress * sin(progress) / 4 / sizedivfactor;
 
     vec4 rl = vec4(cross(direction, mix(cam, vec3(0, 1, 0), face)), 0);
 
     //maagic
-    const vec4 up = vec4(mix(direction * progress * (size + 1) / 4, cross(direction, rl.xyz) * size, face), 0);
+    const vec4 up = vec4(mix(direction * progress * (size + 1 / sizedivfactor) / 4, cross(direction, rl.xyz) * size, face), 0);
 
     rl *= size;
 

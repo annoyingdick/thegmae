@@ -6,8 +6,8 @@
 void CH_Init();
 void CH_AddCharacter(Character* character);
 //be aware that this function also checks your character's field of view
-Character* CH_FindClosestVisibleAliveArmedCharacter(Character* character);
-Character* CH_FindClosestVisibleAliveCharacter(Character* character);
+Character* CH_FindClosestVisibleAimableArmedCharacter(Character* character);
+Character* CH_FindClosestVisibleAimableCharacter(Character* character);
 Mesh* CH_GetMesh();
 void CH_Loop();
 

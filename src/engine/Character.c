@@ -75,12 +75,21 @@ static bool shouldTryShoot(const Character* const character) {
 
     return character->currentSlot && idle && idleSteady;
 }
-static bool shouldShoot(const Character* const character) {
+static bool shouldShoot(Character* const character) {
     const AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
 
-    const float factor = 5;
+    const float factor = 5, minDot = .9f;
 
-    return shootTrack->time > shootTrack->animation->duration / factor && !shootTrack->weight;
+    vec2 toTarget;
+
+    if (character->target) {
+	glm_vec2_sub(VEC3XZ2(character->target->position), VEC3XZ2(character->position), toTarget);
+	glm_vec2_normalize(toTarget);
+    }
+    else glm_vec2_copy(character->direction, toTarget);
+
+    return shootTrack->time > shootTrack->animation->duration / factor && !shootTrack->weight
+    && glm_vec2_dot(character->direction, toTarget) > minDot;
 }
 static bool isTired(const Character* const character) {
     const float threshold = .5f;
@@ -257,7 +266,7 @@ static float getWishDirection(Character* const character, vec3 move, vec3 dest) 
     const float normalSpeed = 5;
 
     if (character->target && (isStopped(character) || character->state != CHARACTER_STATE_SPRINT)) {
-	const float aimingSpeed = 16;
+	const float aimingSpeed = 10;
 
 	//if (AnimationTrack_IsFinished(character->tracks + WEAPON_ANIMATION_SHOOT)) character->going2 = 0;
 
@@ -362,8 +371,8 @@ static void stopIfStopped(Character* const character) {
 }
 static void workerThrd(Character* const character) {
     //TODO: this can cause DAMAAGE when new characters are added to CH
-    if (character->hasGun) character->target = CH_FindClosestVisibleAliveCharacter(character);
-    else character->target = CH_FindClosestVisibleAliveArmedCharacter(character);
+    if (character->hasGun) character->target = CH_FindClosestVisibleAimableCharacter(character);
+    else character->target = CH_FindClosestVisibleAimableArmedCharacter(character);
 
     character->aimTaskLock = false;
 }
@@ -444,9 +453,14 @@ bool Character_CanSeeDotCheck(Character* const character, Character* const them)
 
     return glm_vec3_dot(VEC2XZ(character->direction, 1), dir) > 0;
 }
-bool Character_ShouldProcessShot(const Character* character) {
+bool Character_ShouldProcessShot(Character* character) {
     return CH_GetMesh()->animations && character->state != CHARACTER_STATE_DEAD
     && shouldTryShoot(character) && shouldShoot(character);
+}
+AnimationTrack* Character_GetDeathTrack(Character* const character) {
+    const AnimationTrack* const front = character->tracks + NOTHING_ANIMATION_DEATH_FROMFRONT;
+
+    return character->tracks + (front->weight ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK);
 }
 void Character_BeginSprinting(Character* const character) {
     if (!isTired(character)) character->state = CHARACTER_STATE_SPRINT;
@@ -498,10 +512,7 @@ void Character_Loop(Character* const character) {
 	Character_TryInitAnimations(character);
 
 	if (character->state == CHARACTER_STATE_DEAD) {
-	    const AnimationTrack* const front = character->tracks + NOTHING_ANIMATION_DEATH_FROMFRONT;
-
-	    AnimationTrack* const track = character->tracks + 
-	    (front->weight ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK);
+	    AnimationTrack* const track = Character_GetDeathTrack(character);
 
 	    AnimationTrack_GoTillEnd(track);
 	    AnimationTrack_FadeIn(track, true);
@@ -575,15 +586,24 @@ void Character_Loop(Character* const character) {
 		if (character->target) {
 		    //actually hit
 #ifndef DO_NOT_KILL
+		    AnimationTrack* const deathTrack = Character_GetDeathTrack(character->target)->weight ? 
+		    Character_GetDeathTrack(character->target) :
+		    character->target->tracks + (Character_CanSeeDotCheck(character->target, character)
+		    ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK);
+
 		    //kill
-		    character->target->state = CHARACTER_STATE_DEAD;
+		    if (deathTrack->weight) {
+			deathTrack->time = fminf(deathTrack->time, deathTrack->animation->duration * 3 / 4);
+		    }
+		    else {
+			character->target->state = CHARACTER_STATE_DEAD;
 
-		    character->target->tracks[Character_CanSeeDotCheck(character->target, character)
-		    ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK].weight = FLOAT_BINONE;
+			deathTrack->weight = FLOAT_BINONE;
 
-		    character->target->target = NULL;
+			character->target->target = NULL;
 
-		    character->target->path.numElements = 0;
+			character->target->path.numElements = 0;
+		    }
 #endif
 		}
 	    }

@@ -16,6 +16,11 @@ static bool areAnimationsLoaded;
 
 static Character** characters;
 
+static bool isAimable(Character* const character) {
+    const float time = .3f;
+
+    return character->state != CHARACTER_STATE_DEAD || Character_GetDeathTrack(character)->time < time;
+}
 static void transformsToDelta(Animation* const animation) {
     for (BoneID i = 0; i < mesh.numBones; i++) {
 	const KeyframeSetTranslation* const setTrans = animation->setsTrans + i;
@@ -84,7 +89,7 @@ void CH_AddCharacter(Character* const character) {
 
     characters[region.position] = character;
 }
-Character* CH_FindClosestVisibleAliveArmedCharacter(Character* const character) {
+Character* CH_FindClosestVisibleAimableArmedCharacter(Character* const character) {
     float minDistance;
 
     Character* result;
@@ -94,13 +99,13 @@ Character* CH_FindClosestVisibleAliveArmedCharacter(Character* const character) 
 
     foreach (Character* const* const c, characters, nextCharacterId)
 	//if (Character_CanSeeDotCheck(character, *c)) {
-	    if ((*c)->state != CHARACTER_STATE_DEAD && (*c)->hasGun) processCharacter(character, *c, &minDistance, &result);
+	    if (isAimable(*c) && (*c)->hasGun) processCharacter(character, *c, &minDistance, &result);
 	//}
     forend
 
     return result;
 }
-Character* CH_FindClosestVisibleAliveCharacter(Character* const character) {
+Character* CH_FindClosestVisibleAimableCharacter(Character* const character) {
     float minDistance;
 
     Character* result;
@@ -110,7 +115,7 @@ Character* CH_FindClosestVisibleAliveCharacter(Character* const character) {
 
     foreach (Character* const* const c, characters, nextCharacterId)
 	if (Character_CanSeeDotCheck(character, *c)) {
-	    if ((*c)->state != CHARACTER_STATE_DEAD) processCharacter(character, *c, &minDistance, &result);
+	    if (isAimable(*c)) processCharacter(character, *c, &minDistance, &result);
 	}
     forend
 

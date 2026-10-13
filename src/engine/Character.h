@@ -13,7 +13,7 @@
 typedef uint8_t SlotID;
 typedef uint8_t StateID;
 
-enum {
+enum : SlotID {
     SLOT_NOTHING,
     SLOT_PISTOL,
     SLOT_MAX_ENUM
@@ -40,6 +40,9 @@ enum {
     CHARACTER_STATE_AIM,
     CHARACTER_STATE_DEAD
 };
+
+#define NUM_NOTHING_ANIMATIONS WEAPON_ANIMATION_IDLE
+#define NUM_WEAPON_ANIMATIONS (ANIMATION_MAX_ENUM - NUM_NOTHING_ANIMATIONS)
 
 #define VARS_CHARACTER \
 X(float, fatigue) \
@@ -69,7 +72,8 @@ VARS_CHARACTER
     Character* target;
     float* localMuzzlePosition;
 
-    AnimationTrack tracks[ANIMATION_MAX_ENUM];
+    AnimationTrack tracks[NUM_NOTHING_ANIMATIONS];
+    AnimationTrack wtracks[SLOT_MAX_ENUM - 1][NUM_WEAPON_ANIMATIONS];
 };
 
 void Character_Init(Character* character, Mesh* weaponMesh);

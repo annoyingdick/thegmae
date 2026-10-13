@@ -10,7 +10,7 @@
 #include "TestMeshStreaming.h"
 
 #define NUM_TEST_CUBES 1
-#define NUM_TEST_CHARACTERS 30
+#define NUM_TEST_CHARACTERS 1
 
 static Mesh cubeMeshDyn, tlt, navMesh;
 static Mesh weaponMesh;

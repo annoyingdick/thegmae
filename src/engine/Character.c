@@ -11,6 +11,19 @@
 
 //#define DO_NOT_KILL
 
+#define INIT_WEAPON_ANIMPACK(x)	(const char* const []){ \
+    [WEAPON_ANIMATION_IDLE - NUM_NOTHING_ANIMATIONS] = x"_idle", \
+    [WEAPON_ANIMATION_WALK - NUM_NOTHING_ANIMATIONS] = x"_walk", \
+    [WEAPON_ANIMATION_SPRINT - NUM_NOTHING_ANIMATIONS] = x"_sprint", \
+    [WEAPON_ANIMATION_IDLE_STEADY - NUM_NOTHING_ANIMATIONS] = x"_idlesteady", \
+    [WEAPON_ANIMATION_SHOOT - NUM_NOTHING_ANIMATIONS] = x"_shoot", \
+    [WEAPON_ANIMATION_EQUIP - NUM_NOTHING_ANIMATIONS] = x"_equip", \
+    [WEAPON_ANIMATION_UNEQUIP - NUM_NOTHING_ANIMATIONS] = x"_unequip" \
+}
+
+#define FOREACH_WEAPON_SLOT(x) for (SlotID _i = 0; _i < SLOT_MAX_ENUM - 1; _i++) { \
+AnimationTrack* const x = character->wtracks[_i] - NUM_NOTHING_ANIMATIONS;
+
 static AnimationID topAnimationsOrder[] = {
     NOTHING_ANIMATION_DEATH_FROMFRONT,
     NOTHING_ANIMATION_DEATH_FROMBACK,
@@ -69,14 +82,22 @@ static bool isPathLongerThan(Character* const character, const float length) {
 static bool isSwapping(const Character* const character) {
     return character->currentSlot != character->wishSlot;
 }
-static bool shouldTryShoot(const Character* const character) {
-    const bool idle = character->tracks[WEAPON_ANIMATION_IDLE].weight > .8f;
-    const bool idleSteady = character->tracks[WEAPON_ANIMATION_IDLE_STEADY].weight < .3f;
+//unsafe to call whenever currentSlot is 0
+static AnimationTrack* getWtrack(Character* const character, const AnimationID trackId) {
+    return character->wtracks[character->currentSlot - 1] + trackId - NUM_NOTHING_ANIMATIONS;
+}
+//unsafe to call whenever argument slot is 0
+static AnimationTrack* getSlotWtracks(Character* const character, const SlotID slot) {
+    return character->wtracks[slot - 1] - NUM_NOTHING_ANIMATIONS;
+}
+static bool shouldTryShoot(Character* const character) {
+    const bool idle = getWtrack(character, WEAPON_ANIMATION_IDLE)->weight > .8f;
+    const bool idleSteady = getWtrack(character, WEAPON_ANIMATION_IDLE_STEADY)->weight < .3f;
 
-    return character->currentSlot && idle && idleSteady;
+    return idle && idleSteady;
 }
 static bool shouldShoot(Character* const character) {
-    const AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
+    const AnimationTrack* const shootTrack = getWtrack(character, WEAPON_ANIMATION_SHOOT);
 
     const float factor = 5, minDot = .9f;
 
@@ -143,6 +164,34 @@ static void animateTranslation(
     );
     else glm_vec3_copy(setTrans->translationVectors[id], dest);
 }
+static void processTrack(
+    const AnimationTrack* const track, const Bone* const bone, float* const totalWeight,
+    const AnimationID animId, vec3 finalTrans, versor finalRot
+) {
+    vec3 trans;
+    versor rot;
+
+    const float weight = fminf(track->weight, 1 - *totalWeight);
+
+    const KeyframeSetTranslation* const setTrans = track->animation->setsTrans + bone->id;
+    const KeyframeSetRotation* const setRot = track->animation->setsRot + bone->id;
+
+    animateTranslation(setTrans, track->time, trans);
+    animateRotation(setRot, track->time, rot);
+
+    //root motion : discard any z coord changes
+    if (animId != NOTHING_ANIMATION_DEATH_FROMFRONT && animId != NOTHING_ANIMATION_DEATH_FROMBACK && !bone->id) {
+	trans[2] = 0;
+    }
+
+    glm_vec3_scale(trans, weight, trans);
+    glm_vec3_add(finalTrans, trans, finalTrans);
+
+    glm_quat_slerp(finalRot, rot, totalWeight ? weight : 1, finalRot);
+    //glm_quat_mul(finalRot, rot, finalRot);
+
+    *totalWeight += track->weight;
+}
 static void multiplyAnimation(const AnimationTrack* const track, const BoneID boneId, mat4 transform) {
     mat4 mat;
     versor mulRot;
@@ -166,43 +215,31 @@ static void handleBone(Character* const character, Bone* const bone, mat4 parent
     totalWeight = 0;
 
     isTop = strcmp(bone->name, "mixamorig:Spine2") ? isTop : true;
+    /*
+    const AnimationTrack* const track = animId < NUM_NOTHING_ANIMATIONS
+    ? character->tracks + animId : getSlotWtracks(
+    character, animId == WEAPON_ANIMATION_EQUIP ? character->wishSlot : character->currentSlot) + animId;
+    */
 
     //BENCHMARK_BEGIN
     for (AnimationID i = 0; i < ANIMATION_MAX_ENUM && totalWeight < 1; i++) {
-	vec3 trans;
-	versor rot;
-
 	const AnimationID animId = (isTop ? topAnimationsOrder : bottomAnimationsOrder)[i];
 
-	const AnimationTrack* const track = character->tracks + animId;
-
-	const float weight = fminf(track->weight, 1 - totalWeight);
-
-	const KeyframeSetTranslation* const setTrans = track->animation->setsTrans + bone->id;
-	const KeyframeSetRotation* const setRot = track->animation->setsRot + bone->id;
-
-	animateTranslation(setTrans, track->time, trans);
-	animateRotation(setRot, track->time, rot);
-
-	//root motion : discard any z coord changes
-	if (animId != NOTHING_ANIMATION_DEATH_FROMFRONT && animId != NOTHING_ANIMATION_DEATH_FROMBACK && !bone->id) {
-	    trans[2] = 0;
+	if (animId < NUM_NOTHING_ANIMATIONS) {
+	    processTrack(character->tracks + animId, bone, &totalWeight, animId, finalTrans, finalRot);
 	}
-
-	glm_vec3_scale(trans, weight, trans);
-	glm_vec3_add(finalTrans, trans, finalTrans);
-
-	glm_quat_slerp(finalRot, rot, totalWeight ? weight : 1, finalRot);
-	//glm_quat_mul(finalRot, rot, finalRot);
-
-	totalWeight += track->weight;
+	else {
+	    for (SlotID slot = 0; slot < SLOT_MAX_ENUM - 1; slot++) processTrack(
+		character->wtracks[slot] + animId - NUM_NOTHING_ANIMATIONS, bone, &totalWeight, animId, finalTrans, finalRot
+	    );
+	}
     }
     //BENCHMARK_END
 
     glm_quat_mat4(finalRot, transform);
     glm_vec3_copy(finalTrans, transform[3]);
 
-    if (!AnimationTrack_IsFinished(character->tracks + WEAPON_ANIMATION_SHOOT)) {
+    if (character->currentSlot && !getWtrack(character, WEAPON_ANIMATION_SHOOT)) {
 	multiplyAnimation(character->tracks + WEAPON_ANIMATION_SHOOT, bone->id, transform);
     }
 
@@ -346,26 +383,33 @@ static void initAnimationPointer(Character* const character, const Animation* co
 	[NOTHING_ANIMATION_SPRINT] = "sprint",
 	[NOTHING_ANIMATION_DEATH_FROMFRONT] = "death_fromfront",
 	[NOTHING_ANIMATION_DEATH_FROMBACK] = "death_fromback",
-	[NOTHING_ANIMATION_SCARED] = "scared",
-	[WEAPON_ANIMATION_IDLE] = "pistol_idle",
-	[WEAPON_ANIMATION_WALK] = "pistol_walk",
-	[WEAPON_ANIMATION_SPRINT] = "pistol_sprint",
-	[WEAPON_ANIMATION_IDLE_STEADY] = "pistol_idlesteady",
-	[WEAPON_ANIMATION_SHOOT] = "pistol_shoot",
-	[WEAPON_ANIMATION_EQUIP] = "pistol_equip",
-	[WEAPON_ANIMATION_UNEQUIP] = "pistol_unequip"
+	[NOTHING_ANIMATION_SCARED] = "scared"
+    };
+    const char* const* const wnames[] = {
+	INIT_WEAPON_ANIMPACK("pistol")
     };
 
-    for (int i = 0; i < ANIMATION_MAX_ENUM; i++) {
+    for (int i = 0; i < NUM_NOTHING_ANIMATIONS; i++) {
 	if (!strcmp(animation->name, names[i])) {
 	    AnimationTrack_Init(character->tracks + i, animation);
 
 	    return;
 	}
     }
+    for (SlotID slot = 0; slot < SLOT_MAX_ENUM - 1; slot++) {
+	const char* const* const pack = wnames[slot];
+
+	for (int i = 0; i < NUM_WEAPON_ANIMATIONS; i++) {
+	    if (!strcmp(animation->name, pack[i])) {
+		AnimationTrack_Init(character->wtracks[slot] + i, animation);
+
+		return;
+	    }
+	}
+    }
 }
 static void stopIfStopped(Character* const character) {
-    if (!character->tracks[WEAPON_ANIMATION_WALK].weight &&
+    if ((!character->currentSlot || !getWtrack(character, WEAPON_ANIMATION_WALK)->weight) &&
 	!character->tracks[NOTHING_ANIMATION_WALK].weight && !character->tracks[NOTHING_ANIMATION_SPRINT].weight
     ) character->path.numElements = 0;
 }
@@ -386,23 +430,26 @@ static void fadeAnimations(Character* const character) {
 	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(character->tracks + NOTHING_ANIMATION_WALK))
     );
     AnimationTrack_FadeIn(character->tracks + NOTHING_ANIMATION_SPRINT, sprintCond);
-    AnimationTrack_FadeIn(character->tracks + WEAPON_ANIMATION_EQUIP, isSwapping(character) && !character->currentSlot);
-    AnimationTrack_FadeIn(character->tracks + WEAPON_ANIMATION_UNEQUIP, isSwapping(character) && character->currentSlot);
-    AnimationTrack_FadeIn(
-	character->tracks + WEAPON_ANIMATION_IDLE, 
-	((character->currentSlot && character->wishSlot) || character->tracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
-	!sprintCond
-    );
-    AnimationTrack_FadeIn(
-	character->tracks + WEAPON_ANIMATION_IDLE_STEADY, 
-	((character->currentSlot && character->wishSlot) || character->tracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
-	!sprintCond && character->state != CHARACTER_STATE_AIM
-    );
-    AnimationTrack_FadeIn(
-	character->tracks + WEAPON_ANIMATION_WALK, 
-	character->wishSlot && character->state != CHARACTER_STATE_SPRINT && 
-	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(character->tracks + WEAPON_ANIMATION_WALK))
-    );
+
+    FOREACH_WEAPON_SLOT(wtracks)
+	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_EQUIP, isSwapping(character) && !character->currentSlot);
+	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_UNEQUIP, isSwapping(character) && character->currentSlot);
+	AnimationTrack_FadeIn(
+	    wtracks + WEAPON_ANIMATION_IDLE, 
+	    ((character->currentSlot && character->wishSlot) || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
+	    !sprintCond
+	);
+	AnimationTrack_FadeIn(
+	    wtracks + WEAPON_ANIMATION_IDLE_STEADY, 
+	    ((character->currentSlot && character->wishSlot) || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
+	    !sprintCond && character->state != CHARACTER_STATE_AIM
+	);
+	AnimationTrack_FadeIn(
+	    wtracks + WEAPON_ANIMATION_WALK, 
+	    character->wishSlot && character->state != CHARACTER_STATE_SPRINT && 
+	    isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(wtracks + WEAPON_ANIMATION_WALK))
+	);
+    forend
 }
 static void addFatigue(Character* const character) {
     const float factor = .3f;
@@ -440,7 +487,10 @@ void Character_Init(Character* const character, Mesh* const weaponMesh) {
     character->direction[1] = -1;
 
     character->tracks[NOTHING_ANIMATION_IDLE].weight = 1;
-    character->tracks[WEAPON_ANIMATION_SHOOT].time = INFINITY;
+
+    for (SlotID i = 0; i < SLOT_MAX_ENUM - 1; i++) {
+	character->wtracks[i][WEAPON_ANIMATION_SHOOT - NUM_NOTHING_ANIMATIONS].time = INFINITY;
+    }
 
     character->areAnimationsLoaded = false;
 
@@ -455,7 +505,7 @@ bool Character_CanSeeDotCheck(Character* const character, Character* const them)
 }
 bool Character_ShouldProcessShot(Character* character) {
     return CH_GetMesh()->animations && character->state != CHARACTER_STATE_DEAD
-    && shouldTryShoot(character) && shouldShoot(character);
+    && character->currentSlot && shouldTryShoot(character) && shouldShoot(character);
 }
 AnimationTrack* Character_GetDeathTrack(Character* const character) {
     const AnimationTrack* const front = character->tracks + NOTHING_ANIMATION_DEATH_FROMFRONT;
@@ -470,11 +520,13 @@ void Character_StopSprinting(Character* const character) {
 }
 void Character_ChooseSlot(Character* const character, const SlotID slot) {
     if (character->hasGun) {
+	AnimationTrack* const wtracks = getSlotWtracks(character, slot ? slot : character->currentSlot);
+
 	if (!(character->wishSlot = slot) && character->state == CHARACTER_STATE_AIM) {
 	    character->state = CHARACTER_STATE_NORMAL;
 	}
 
-	character->tracks[slot ? WEAPON_ANIMATION_EQUIP : WEAPON_ANIMATION_UNEQUIP].time = 0;
+	wtracks[slot ? WEAPON_ANIMATION_EQUIP : WEAPON_ANIMATION_UNEQUIP].time = 0;
     }
 }
 void Character_SwitchAim(Character* const character, const bool aim) {
@@ -522,10 +574,13 @@ void Character_Loop(Character* const character) {
 	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_WALK);
 	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_SPRINT);
 	    AnimationTrack_Go(character->tracks + NOTHING_ANIMATION_SCARED);
-	    AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_IDLE);
-	    AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_WALK);
-	    AnimationTrack_Go(character->tracks + WEAPON_ANIMATION_IDLE_STEADY);
-	    AnimationTrack_GoTillEnd(character->tracks + WEAPON_ANIMATION_SHOOT);
+
+	    FOREACH_WEAPON_SLOT(wtracks)
+		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_IDLE);
+		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_WALK);
+		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_IDLE_STEADY);
+		AnimationTrack_GoTillEnd(wtracks + WEAPON_ANIMATION_SHOOT);
+	    forend
 
 	    if (character->tracks[NOTHING_ANIMATION_SCARED].weight) {
 		AnimationTrack* const scared = character->tracks + NOTHING_ANIMATION_SCARED;
@@ -538,8 +593,9 @@ void Character_Loop(Character* const character) {
 	    }
 
 	    if (isSwapping(character)) {
-		AnimationTrack* const track = character->tracks + 
-		(character->currentSlot ? WEAPON_ANIMATION_UNEQUIP : WEAPON_ANIMATION_EQUIP);
+		AnimationTrack* const track = getSlotWtracks(
+		    character, character->currentSlot ? character->currentSlot : character->wishSlot
+		) + (character->currentSlot ? WEAPON_ANIMATION_UNEQUIP : WEAPON_ANIMATION_EQUIP);
 
 		track->time += WH_GetDeltaTime();
 
@@ -562,7 +618,7 @@ void Character_Loop(Character* const character) {
 	    if (character->target) {
 		if (character->state == CHARACTER_STATE_AIM) {
 		    if (shouldTryShoot(character)) {
-			AnimationTrack* const shootTrack = character->tracks + WEAPON_ANIMATION_SHOOT;
+			AnimationTrack* const shootTrack = getWtrack(character, WEAPON_ANIMATION_SHOOT);
 
 			if (AnimationTrack_IsFinished(shootTrack)) shootTrack->time = shootTrack->weight = 0;
 		    }

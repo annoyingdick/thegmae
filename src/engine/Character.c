@@ -11,10 +11,10 @@
 
 //#define DO_NOT_KILL
 
-#define INIT_WEAPON_ANIMPACK(x)	(const char* const []){ \
+#define INIT_WEAPON_ANIMPACK(x, sprint)	(const char* const []){ \
     [WEAPON_ANIMATION_IDLE - NUM_NOTHING_ANIMATIONS] = x"_idle", \
     [WEAPON_ANIMATION_WALK - NUM_NOTHING_ANIMATIONS] = x"_walk", \
-    [WEAPON_ANIMATION_SPRINT - NUM_NOTHING_ANIMATIONS] = x"_sprint", \
+    [WEAPON_ANIMATION_SPRINT - NUM_NOTHING_ANIMATIONS] = sprint"sprint", \
     [WEAPON_ANIMATION_IDLE_STEADY - NUM_NOTHING_ANIMATIONS] = x"_idlesteady", \
     [WEAPON_ANIMATION_SHOOT - NUM_NOTHING_ANIMATIONS] = x"_shoot", \
     [WEAPON_ANIMATION_EQUIP - NUM_NOTHING_ANIMATIONS] = x"_equip", \
@@ -55,7 +55,7 @@ static AnimationID bottomAnimationsOrder[] = {
     WEAPON_ANIMATION_SHOOT
 };
 const AnimationID moveAnimations[] = {
-    WEAPON_ANIMATION_WALK, NOTHING_ANIMATION_SPRINT, NOTHING_ANIMATION_WALK 
+    WEAPON_ANIMATION_SPRINT, WEAPON_ANIMATION_WALK, NOTHING_ANIMATION_SPRINT, NOTHING_ANIMATION_WALK 
 };
 
 static bool isStopped(const Character* const character) {
@@ -187,7 +187,7 @@ static void processTrack(
     glm_vec3_scale(trans, weight, trans);
     glm_vec3_add(finalTrans, trans, finalTrans);
 
-    glm_quat_slerp(finalRot, rot, totalWeight ? weight : 1, finalRot);
+    glm_quat_slerp(finalRot, rot, *totalWeight ? weight : 1, finalRot);
     //glm_quat_mul(finalRot, rot, finalRot);
 
     *totalWeight += track->weight;
@@ -229,7 +229,7 @@ static void handleBone(Character* const character, Bone* const bone, mat4 parent
 	    processTrack(character->tracks + animId, bone, &totalWeight, animId, finalTrans, finalRot);
 	}
 	else {
-	    for (SlotID slot = 0; slot < SLOT_MAX_ENUM - 1; slot++) processTrack(
+	    for (SlotID slot = 0; slot < SLOT_MAX_ENUM - 1 && totalWeight < 1; slot++) processTrack(
 		character->wtracks[slot] + animId - NUM_NOTHING_ANIMATIONS, bone, &totalWeight, animId, finalTrans, finalRot
 	    );
 	}
@@ -386,15 +386,11 @@ static void initAnimationPointer(Character* const character, const Animation* co
 	[NOTHING_ANIMATION_SCARED] = "scared"
     };
     const char* const* const wnames[] = {
-	INIT_WEAPON_ANIMPACK("pistol")
+	INIT_WEAPON_ANIMPACK("pistol", "")
     };
 
     for (int i = 0; i < NUM_NOTHING_ANIMATIONS; i++) {
-	if (!strcmp(animation->name, names[i])) {
-	    AnimationTrack_Init(character->tracks + i, animation);
-
-	    return;
-	}
+	if (!strcmp(animation->name, names[i])) AnimationTrack_Init(character->tracks + i, animation);
     }
     for (SlotID slot = 0; slot < SLOT_MAX_ENUM - 1; slot++) {
 	const char* const* const pack = wnames[slot];
@@ -409,8 +405,10 @@ static void initAnimationPointer(Character* const character, const Animation* co
     }
 }
 static void stopIfStopped(Character* const character) {
-    if ((!character->currentSlot || !getWtrack(character, WEAPON_ANIMATION_WALK)->weight) &&
-	!character->tracks[NOTHING_ANIMATION_WALK].weight && !character->tracks[NOTHING_ANIMATION_SPRINT].weight
+    const AnimationTrack* const wtracks = getSlotWtracks(character, character->wishSlot);
+
+    if ((!character->wishSlot || (!wtracks[WEAPON_ANIMATION_WALK].weight && !wtracks[WEAPON_ANIMATION_SPRINT].weight))
+	&& !character->tracks[NOTHING_ANIMATION_WALK].weight && !character->tracks[NOTHING_ANIMATION_SPRINT].weight
     ) character->path.numElements = 0;
 }
 static void workerThrd(Character* const character) {
@@ -421,23 +419,26 @@ static void workerThrd(Character* const character) {
     character->aimTaskLock = false;
 }
 static void fadeAnimations(Character* const character) {
-    const bool sprintCond = character->state == CHARACTER_STATE_SPRINT && 
-    isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(character->tracks + NOTHING_ANIMATION_SPRINT));
 
     AnimationTrack_FadeIn(
 	character->tracks + NOTHING_ANIMATION_WALK,
 	character->state == CHARACTER_STATE_NORMAL && (!character->wishSlot) &&
 	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(character->tracks + NOTHING_ANIMATION_WALK))
     );
-    AnimationTrack_FadeIn(character->tracks + NOTHING_ANIMATION_SPRINT, sprintCond);
+    AnimationTrack_FadeIn(
+	character->tracks + NOTHING_ANIMATION_SPRINT, !character->wishSlot && character->state == CHARACTER_STATE_SPRINT && 
+	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(character->tracks + NOTHING_ANIMATION_SPRINT))
+    );
 
     FOREACH_WEAPON_SLOT(wtracks)
+	const bool sprintCond = character->wishSlot && character->state == CHARACTER_STATE_SPRINT && 
+	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(wtracks + WEAPON_ANIMATION_SPRINT));
+
 	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_EQUIP, isSwapping(character) && !character->currentSlot);
 	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_UNEQUIP, isSwapping(character) && character->currentSlot);
 	AnimationTrack_FadeIn(
 	    wtracks + WEAPON_ANIMATION_IDLE, 
-	    ((character->currentSlot && character->wishSlot) || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
-	    !sprintCond
+	    ((character->currentSlot && character->wishSlot) || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) && !sprintCond
 	);
 	AnimationTrack_FadeIn(
 	    wtracks + WEAPON_ANIMATION_IDLE_STEADY, 
@@ -449,6 +450,7 @@ static void fadeAnimations(Character* const character) {
 	    character->wishSlot && character->state != CHARACTER_STATE_SPRINT && 
 	    isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(wtracks + WEAPON_ANIMATION_WALK))
 	);
+	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_SPRINT, sprintCond);
     forend
 }
 static void addFatigue(Character* const character) {
@@ -578,6 +580,7 @@ void Character_Loop(Character* const character) {
 	    FOREACH_WEAPON_SLOT(wtracks)
 		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_IDLE);
 		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_WALK);
+		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_SPRINT);
 		AnimationTrack_Go(wtracks + WEAPON_ANIMATION_IDLE_STEADY);
 		AnimationTrack_GoTillEnd(wtracks + WEAPON_ANIMATION_SHOOT);
 	    forend

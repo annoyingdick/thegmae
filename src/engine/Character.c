@@ -239,7 +239,7 @@ static void handleBone(Character* const character, Bone* const bone, mat4 parent
     glm_quat_mat4(finalRot, transform);
     glm_vec3_copy(finalTrans, transform[3]);
 
-    if (character->currentSlot && !getWtrack(character, WEAPON_ANIMATION_SHOOT)) {
+    if (character->currentSlot && !AnimationTrack_IsFinished(getWtrack(character, WEAPON_ANIMATION_SHOOT))) {
 	multiplyAnimation(character->tracks + WEAPON_ANIMATION_SHOOT, bone->id, transform);
     }
 
@@ -434,20 +434,23 @@ static void fadeAnimations(Character* const character) {
 	const bool sprintCond = character->wishSlot && character->state == CHARACTER_STATE_SPRINT && 
 	isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(wtracks + WEAPON_ANIMATION_SPRINT));
 
+	const bool isWish = character->wishSlot == _i + 1;
+	const bool isTotallyLegitBusinessMan = character->currentSlot == _i + 1 && isWish;
+
 	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_EQUIP, isSwapping(character) && !character->currentSlot);
 	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_UNEQUIP, isSwapping(character) && character->currentSlot);
 	AnimationTrack_FadeIn(
 	    wtracks + WEAPON_ANIMATION_IDLE, 
-	    ((character->currentSlot && character->wishSlot) || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) && !sprintCond
+	    (isTotallyLegitBusinessMan || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) && !sprintCond
 	);
 	AnimationTrack_FadeIn(
 	    wtracks + WEAPON_ANIMATION_IDLE_STEADY, 
-	    ((character->currentSlot && character->wishSlot) || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
+	    (isTotallyLegitBusinessMan || wtracks[WEAPON_ANIMATION_EQUIP].weight == 1) &&
 	    !sprintCond && character->state != CHARACTER_STATE_AIM
 	);
 	AnimationTrack_FadeIn(
 	    wtracks + WEAPON_ANIMATION_WALK, 
-	    character->wishSlot && character->state != CHARACTER_STATE_SPRINT && 
+	    isWish && character->state != CHARACTER_STATE_SPRINT && 
 	    isPathLongerThan(character, AnimationTrack_GetPathLengthToStop(wtracks + WEAPON_ANIMATION_WALK))
 	);
 	AnimationTrack_FadeIn(wtracks + WEAPON_ANIMATION_SPRINT, sprintCond);

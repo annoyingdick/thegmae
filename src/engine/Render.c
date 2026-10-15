@@ -10,7 +10,7 @@
 #include "BillboardPip.h"
 #include "Render.h"
 
-#define DO_OPENGL_DEBUG
+#define DO_OPENGL_DEBUG DEBUG
 
 //#define NOT_UPLOAD_INDICES
 //#define NOT_SHOW_TEXTURES

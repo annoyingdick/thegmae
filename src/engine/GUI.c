@@ -182,6 +182,10 @@ static void processTokens(jsmntok_t tokens[const], const char js[const], const c
 
 	    const jsmntok_t* glyph;
 	    Glyph* character;
+	    
+	    //to stop compiler from bitchin
+	    character = NULL;
+	    recordingUV = false;
 
 	    glyph = ++token;
 

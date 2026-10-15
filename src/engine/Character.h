@@ -80,6 +80,8 @@ void Character_Init(Character* character, Mesh* weaponMesh);
 bool Character_CanSeeDotCheck(Character* character, Character* them);
 bool Character_ShouldProcessShot(Character* character);
 AnimationTrack* Character_GetDeathTrack(Character* character);
+//unsafe to call whenever currentSlot is 0
+AnimationTrack* Character_GetWeaponTracks(Character* character, AnimationID trackId);
 void Character_BeginSprinting(Character* character);
 void Character_StopSprinting(Character* character);
 void Character_ChooseSlot(Character* character, SlotID slot);

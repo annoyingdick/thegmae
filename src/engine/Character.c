@@ -82,22 +82,18 @@ static bool isPathLongerThan(Character* const character, const float length) {
 static bool isSwapping(const Character* const character) {
     return character->currentSlot != character->wishSlot;
 }
-//unsafe to call whenever currentSlot is 0
-static AnimationTrack* getWtrack(Character* const character, const AnimationID trackId) {
-    return character->wtracks[character->currentSlot - 1] + trackId - NUM_NOTHING_ANIMATIONS;
-}
 //unsafe to call whenever argument slot is 0
 static AnimationTrack* getSlotWtracks(Character* const character, const SlotID slot) {
     return character->wtracks[slot - 1] - NUM_NOTHING_ANIMATIONS;
 }
 static bool shouldTryShoot(Character* const character) {
-    const bool idle = getWtrack(character, WEAPON_ANIMATION_IDLE)->weight > .8f;
-    const bool idleSteady = getWtrack(character, WEAPON_ANIMATION_IDLE_STEADY)->weight < .3f;
+    const bool idle = Character_GetWeaponTracks(character, WEAPON_ANIMATION_IDLE)->weight > .8f;
+    const bool idleSteady = Character_GetWeaponTracks(character, WEAPON_ANIMATION_IDLE_STEADY)->weight < .3f;
 
     return idle && idleSteady;
 }
 static bool shouldShoot(Character* const character) {
-    const AnimationTrack* const shootTrack = getWtrack(character, WEAPON_ANIMATION_SHOOT);
+    const AnimationTrack* const shootTrack = Character_GetWeaponTracks(character, WEAPON_ANIMATION_SHOOT);
 
     const float factor = 5, minDot = .9f;
 
@@ -239,7 +235,7 @@ static void handleBone(Character* const character, Bone* const bone, mat4 parent
     glm_quat_mat4(finalRot, transform);
     glm_vec3_copy(finalTrans, transform[3]);
 
-    if (character->currentSlot && !AnimationTrack_IsFinished(getWtrack(character, WEAPON_ANIMATION_SHOOT))) {
+    if (character->currentSlot && !AnimationTrack_IsFinished(Character_GetWeaponTracks(character, WEAPON_ANIMATION_SHOOT))) {
 	multiplyAnimation(character->tracks + WEAPON_ANIMATION_SHOOT, bone->id, transform);
     }
 
@@ -517,6 +513,9 @@ AnimationTrack* Character_GetDeathTrack(Character* const character) {
 
     return character->tracks + (front->weight ? NOTHING_ANIMATION_DEATH_FROMFRONT : NOTHING_ANIMATION_DEATH_FROMBACK);
 }
+AnimationTrack* Character_GetWeaponTracks(Character* const character, const AnimationID trackId) {
+    return character->wtracks[character->currentSlot - 1] + trackId - NUM_NOTHING_ANIMATIONS;
+}
 void Character_BeginSprinting(Character* const character) {
     if (!isTired(character)) character->state = CHARACTER_STATE_SPRINT;
 }
@@ -624,7 +623,7 @@ void Character_Loop(Character* const character) {
 	    if (character->target) {
 		if (character->state == CHARACTER_STATE_AIM) {
 		    if (shouldTryShoot(character)) {
-			AnimationTrack* const shootTrack = getWtrack(character, WEAPON_ANIMATION_SHOOT);
+			AnimationTrack* const shootTrack = Character_GetWeaponTracks(character, WEAPON_ANIMATION_SHOOT);
 
 			if (AnimationTrack_IsFinished(shootTrack)) shootTrack->time = shootTrack->weight = 0;
 		    }

@@ -276,6 +276,10 @@ void DGH_InputEnd() {
     nk_input_end(nkc);
 }
 void DGH_Draw() {
+#ifndef DEBUG
+    return;
+#endif
+
     makeGui();
     render();
 }

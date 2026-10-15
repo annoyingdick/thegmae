@@ -4,7 +4,7 @@ void Player_Loop(Player* const player) {
     Character_Loop(player);
 
     if (Character_ShouldProcessShot(player)) {
-	player->tracks[WEAPON_ANIMATION_SHOOT].weight = FLOAT_BINONE;
+	Character_GetWeaponTracks(player, WEAPON_ANIMATION_SHOOT)->weight = FLOAT_BINONE;
 
 	GUI_UpdateAmmoMag(player->ammoMag);
     }

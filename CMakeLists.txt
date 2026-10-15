@@ -6,7 +6,6 @@ include(FetchContent)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 
-set(GENERATE_DEBUG_SYMBOLS ON)
 set(ENABLE_ALL_WARNINGS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -62,8 +61,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stbinclude)
 
-set(CMAKE_C_FLAGS_DEBUG "")
-set(CMAKE_C_FLAGS_RELEASE "-O3")
+#set(CMAKE_C_FLAGS_DEBUG "")
+#set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 file(GLOB SOURCES "src/*/*.c")
 add_executable(thegmae ${SOURCES})
@@ -83,7 +82,4 @@ target_include_directories(thegmae PUBLIC ${khashl_SOURCE_DIR})
 
 if (ENABLE_ALL_WARNINGS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror")
-endif()
-if (GENERATE_DEBUG_SYMBOLS)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 endif()

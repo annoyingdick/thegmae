@@ -7,7 +7,9 @@
 #include <time.h>
 #include "WindowHandler.h" // IWYU pragma: keep
 
+#ifndef NDEBUG
 #define DEBUG
+#endif
 
 #ifdef DEBUG
 #define DEBUG_MESSAGES
@@ -18,7 +20,7 @@
 #ifdef DEBUG_MESSAGES
 #define printfd(...) printf(__FILE_NAME__" : " __VA_ARGS__)
 #else
-#define printfd(...)
+#define printfd(...) do { if (0) { printf(__FILE_NAME__" : " __VA_ARGS__); } } while (0)
 #endif
 
 #define BENCHMARK_BEGIN struct timespec _beg, _end; timespec_get(&_beg, TIME_UTC);
@@ -26,9 +28,9 @@
 timespec_get(&_end, TIME_UTC); \
 printf("%llu nanoseconds\n", ((_end.tv_sec - _beg.tv_sec) * 1000000000) + (_end.tv_nsec - _beg.tv_nsec));
 
-//i decided to hardcode this instead of using typeof which is a very new feature from c23 and 
+//i've decided to hardcode this instead of using typeof which is a very new feature from c23 and 
 //therefore it may not be widely supported
-//Use for unsigned variables like: int foo; VARMAX(foo)
+//Use for unsigned integer variables like: unsigned int foo; VARMAX(foo)
 #define MAXT(t) (sizeof(t) == 8 ? UINT64_MAX : (sizeof(t) == 4 ? UINT32_MAX : (sizeof(t) == 2 ? UINT16_MAX : UINT8_MAX)))
 
 #define INVALIDATE(x) x = -1

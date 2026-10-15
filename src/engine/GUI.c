@@ -27,7 +27,7 @@ typedef struct {
     float advance;
 } Glyph;
 
-static Mesh meshAmmo;
+static Mesh meshAmmo, meshHint;
 
 static Ammo ammoMag = 10000000, ammoLeft;
 
@@ -74,9 +74,10 @@ static void alignText(
     if (alignRight) position[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) / windowX;
     if (alignTop) position[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) / windowY;
 }
-static void initText(Mesh* const mesh, const char text[const], vec2 position, const bool alignRight, const bool alignTop) {
-    const float size = 200, outline = .5f;
-
+static void initText(
+    Mesh* const mesh, const char text[const], vec2 position, float size, float outline, 
+    const bool alignRight, const bool alignTop
+) {
     const size_t textLength = strlen(text);
 
     float windowX, windowY;
@@ -271,17 +272,25 @@ static void initAmmoText() {
 
     const int size = snprintf(NULL, 0, format, ammoLeft, ammoMag);
 
+    const float fontSize = 200;
+
     char string[size];
 
     sprintf(string, format, ammoLeft, ammoMag);
 
-    initText(&meshAmmo, string, (vec2){1, 1}, true, true);
+    initText(&meshAmmo, string, (vec2){1, 1}, fontSize, 1, true, true);
+}
+static void initHintText() {
+    const float size = 100;
+
+    initText(&meshHint, "Point and click with your mouse to move character. "
+	"Use the right mouse button and WASD keys to relocate the camera", (vec2){-1, 1}, size, 0, false, true);
 }
 
 void GUI_Init() {
     initGlyphs();
 
-    initAmmoText();
+    GUI_UpdateTexts();
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;
@@ -296,6 +305,7 @@ void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
 }
 void GUI_UpdateTexts() {
     initAmmoText();
+    initHintText();
 }
 void GUI_Loop() {
 

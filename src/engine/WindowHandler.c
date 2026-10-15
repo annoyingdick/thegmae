@@ -49,6 +49,9 @@ static WHLoopResultCode pollEvents() {
 		SDL_CHECK(SDL_GL_SetSwapInterval(!interval));
 
 		break;
+	    case SDLK_GRAVE:
+
+		break;
 	    default:
 		GM_KeyDown(event.key.key);
 	    }

@@ -17,6 +17,7 @@
 #define MAX_CHARACTERS_64 21
 
 static ArrayView selectedArray, wishArray;
+static bool isOpen;
 
 static struct nk_context* nkc;
 
@@ -254,6 +255,8 @@ void DGH_InputBegin() {
     nk_input_begin(nkc);
 }
 void DGH_HandleEvent(SDL_Event* const event) {
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_GRAVE) isOpen = !isOpen;
+
     /*const float scale = .5f;
 
     switch (event->type) {
@@ -280,8 +283,10 @@ void DGH_Draw() {
     return;
 #endif
 
-    makeGui();
-    render();
+    if (isOpen) {
+	makeGui();
+	render();
+    }
 }
 
 void DGH_ArrayT(const voidArray* const array) {

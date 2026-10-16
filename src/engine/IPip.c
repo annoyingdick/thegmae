@@ -76,11 +76,12 @@ InstanceID IPip_NewInstance(IPip* const pip, const NewInstanceInfo info) {
     GL_CHECK(GPUBuffer_BindBase(pip->base.commandsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_COMMANDS));
     GL_CHECK(GPUBuffer_BindBase(pip->instancesMeshIdsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_INSTANCES_MESH_IDS));
 
+    ShaderProgram_Use(newInstanceProgram);
+
+    GL_CHECK(Uniform_Set_1UI(baseMeshIdUniform_newInstance, info.meshId + 1));
+
     GL_CHECK(glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT));
-
-    Uniform_Set_1UI(baseMeshIdUniform_newInstance, info.meshId + 1);
-
-    ShaderProgram_Dispatch(newInstanceProgram, pip->base.nextMeshId - info.meshId);
+    GL_CHECK(glDispatchCompute(pip->base.nextMeshId - info.meshId, 1, 1));
 
     return pip->baseInstances[info.meshId];
 }
@@ -97,11 +98,13 @@ void IPip_DeleteInstance(IPip* const pip, const DeleteInstanceInfo info) {
     GPUBuffer_BindBase(pip->base.commandsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_COMMANDS);
     GPUBuffer_BindBase(pip->instancesMeshIdsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_INSTANCES_MESH_IDS);
 
-    Uniform_Set_1UI(baseMeshIdUniform_deleteInstance, info.meshId + 1);
-
     //glMemoryBarrier(GL_NONE);
     //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    ShaderProgram_Dispatch(deleteInstanceProgram, pip->base.nextMeshId - info.meshId);
+    ShaderProgram_Use(deleteInstanceProgram);
+
+    GL_CHECK(Uniform_Set_1UI(baseMeshIdUniform_deleteInstance, info.meshId + 1));
+
+    GL_CHECK(glDispatchCompute(pip->base.nextMeshId - info.meshId, 1, 1));
 }
 void IPip_Run(const IPip* const pip) {
     Pip_Run(&pip->base);

@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <cglm/vec3.h>
+#include <cglm/mat4.h>
 #include "engine/InstancesHandler.h"
 #include "engine/PhysicsSimulationHandler.h"
 
 static const char* const meshNames[] = {
-    "arrow.gltf", "boss.gltf", "cube.gltf", "lod0.gltf", "lod1.gltf", "MosquitoInAmber.gltf"
+    "boss.gltf", "lod0.gltf", "lod1.gltf", "MosquitoInAmber.gltf"
 };
 
 #define SPAWN_RATE_DIV 10
@@ -45,5 +46,5 @@ void TestMeshStreaming_Loop() {
     }
 #endif
 
-    for (InstancePtrID i = 0; i < numObjects; i++) PSH_GetTransform(bodies[i], IH_GetUploadPtr(ptrs[i]));
+    for (InstancePtrID i = 0; i < numObjects; i++) glm_mat4_identity(IH_GetUploadPtr(ptrs[i]));
 }

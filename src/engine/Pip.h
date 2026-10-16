@@ -65,7 +65,7 @@ void Pip_PreInit();
 void Pip_Init(Pip* pip, PipInitInfo info);
 void Pip_UploadVertices(Pip* pip, GLsizeiptr vertexSize, UploadVerticesInfo info);
 MeshID Pip_NewMesh(Pip* pip, RegionSize* outNewSize, bool* outIsLast);
-void Pip_UploadMesh(const Pip* pip, UploadMeshInfo info);
+void Pip_UploadMesh(const Pip* pip, UploadMeshInfo info, InstanceID numInstances);
 void Pip_UploadMeshFirstTime(Pip* pip, PipUploadMeshFirstTimeInfo info);
 void Pip_Run(const Pip* pip);
 void Pip_Draw(const Pip* pip);

@@ -70,12 +70,12 @@ MeshID Pip_NewMesh(Pip* const pip, RegionSize* const outNewSize, bool* const out
     return region.position;
 }
 
-void Pip_UploadMesh(const Pip* const pip, const UploadMeshInfo info) {
-    //DRAWCOMMAND'S INSTANCECOUNT IS ALWAYS ZERO BEFORE DRAWING 
+void Pip_UploadMesh(const Pip* const pip, const UploadMeshInfo info, const InstanceID numInstances) {
+    //DRAWCOMMAND'S INSTANCECOUNT IS ALWAYS ZERO IN THE INSTANCED PIPELINES BEFORE DRAWING 
     //AND IS SAFE TO CHANGE BEFORE THE CLEARCOMMANDS COMPUTE SHADER RUN
 
     const GLuint data[] = {
-	info.numIndices, 0, info.firstIndex, info.firstVertex
+	info.numIndices, numInstances, info.firstIndex, info.firstVertex
     };
 
     //const GLsizeiptr off = info.numIndices ? 0 : offsetof(DrawElementsIndirectCommand, firstIndex);

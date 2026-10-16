@@ -378,7 +378,7 @@ void* R_GetUploadPtr(const PipID pipId, const InstanceID id) {
     return mapped + (id * pipelinesInstanceDataSizes[pipId]);
 }
 void R_UploadMesh(const PipID pipId, const UploadMeshInfo info) {
-    Pip_UploadMesh(getBasePip(pipId), info);
+    Pip_UploadMesh(getBasePip(pipId), info, 0);
 }
 void R_DeleteMesh(const PipID pipId, const MeshID meshId) {
     Pip* const pip = getBasePip(pipId);

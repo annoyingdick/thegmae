@@ -194,7 +194,7 @@ static void makeGui() {
 		    showTriangle(((Triangle*)selectedArray.array)[i], name);
 		    break;
 		case DGH_PIPDYNAMIC_ARRAY:
-		    DGH_FIELDNAME(&((PipDynamic*)selectedArray.array)[i].base, name);
+		    DGH_FIELDNAME(&((IPipDynamic*)selectedArray.array)[i].base.base, name);
 		    break;
 		case DGH_CHARACTERPTR_ARRAY:
 		    DGH_PTRNAME(((Character**)selectedArray.array)[i], name);

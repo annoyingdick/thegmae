@@ -8,7 +8,7 @@
 #include "Geometry.h"
 #include "InstancesHandler.h"
 #include "Pip.h"
-#include "PipDynamic.h"
+#include "IPipDynamic.h"
 #include "Character.h"
 
 #define DGH_FIELDNAME(x, n) _Generic(x, \
@@ -46,7 +46,7 @@
     Animation*: DGH_ANIMATION_ARRAY, const Animation*: DGH_ANIMATION_ARRAY, \
     vec3*: DGH_VEC3_ARRAY, \
     Triangle*: DGH_TRIANGLE_ARRAY, \
-    PipDynamic*: DGH_PIPDYNAMIC_ARRAY, \
+    IPipDynamic*: DGH_PIPDYNAMIC_ARRAY, \
     Character*: DGH_CHARACTER_ARRAY, \
     Character**: DGH_CHARACTERPTR_ARRAY, \
     const AnimationTrack*: DGH_ANIMATIONTRACK_ARRAY \

@@ -1,8 +1,8 @@
 #include <cglm/cam.h>
 #include "def.h"
 #include "Uniform.h"
-#include "PipStatic.h"
-#include "PipDynamic.h"
+#include "IPipStatic.h"
+#include "IPipDynamic.h"
 #include "Camera.h"
 #include "TexturesHandler.h"
 #include "ModelsHandler.h"
@@ -39,8 +39,8 @@ static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInt
 static mat4 pvMat;
 static mat4 perspectiveMat;
 
-static PipDynamic dynamics[NUM_DYNAMIC_PIPELINES];
-static PipStatic statics[GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES];
+static IPipDynamic dynamics[NUM_DYNAMIC_PIPELINES];
+static IPipStatic statics[GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES];
 static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
@@ -165,6 +165,9 @@ static GLsync getSync() {
     return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 static Pip* getBasePip(const PipID pipId) {
+    return pipId >= NUM_DYNAMIC_PIPELINES ? &statics[pipId - NUM_DYNAMIC_PIPELINES].base.base : &dynamics[pipId].base.base;
+}
+static IPip* getBaseIPip(const PipID pipId) {
     return pipId >= NUM_DYNAMIC_PIPELINES ? &statics[pipId - NUM_DYNAMIC_PIPELINES].base : &dynamics[pipId].base;
 }
 static void initGlew() {
@@ -199,15 +202,17 @@ static void initPipelines() {
 	    "normal.comp", "interp.comp", "skinned.comp"
 	};
 
-	PipDynamic_Init(dynamics + i, (PipInitInfo){
-	    .mainShaderInfo = {
-		.vertexShaderSourceFileName = vertexShaderNames[i],
-		.fragmentShaderSourceFileName = "normal.frag"
+	IPipDynamic_Init(dynamics + i, (IPipInitInfo){
+	    .baseInfo = {
+		.mainShaderInfo = {
+		    .vertexShaderSourceFileName = vertexShaderNames[i],
+		    .fragmentShaderSourceFileName = "normal.frag"
+		},
+		.vertexSize = pipelinesVertexSizes[i]
 	    },
 	    .processInstancesShaderInfo = {piShaderNames[i]},
 
-	    .instanceDataSize = pipelinesInstanceDataSizes[i],
-	    .vertexSize = pipelinesVertexSizes[i]
+	    .instanceDataSize = pipelinesInstanceDataSizes[i]
 	});
     }
     for (PipID i = 0; i < GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES; i++) {
@@ -218,15 +223,17 @@ static void initPipelines() {
 	    "static.comp", "gui.comp"
 	};
 
-	PipStatic_Init(statics + i, (PipInitInfo){
-	    .mainShaderInfo = {
-		.vertexShaderSourceFileName = vertexShaderNames[i],
-		.fragmentShaderSourceFileName = i == 1 ? "gui.frag" : "normal.frag"
+	IPipStatic_Init(statics + i, (IPipInitInfo){
+	    .baseInfo = {
+		.mainShaderInfo = {
+		    .vertexShaderSourceFileName = vertexShaderNames[i],
+		    .fragmentShaderSourceFileName = i == 1 ? "gui.frag" : "normal.frag"
+		},
+		.vertexSize = pipelinesVertexSizes[i + NUM_DYNAMIC_PIPELINES]
 	    },
 	    .processInstancesShaderInfo = {piShaderNames[i]},
 
-	    .instanceDataSize = pipelinesInstanceDataSizes[i + NUM_DYNAMIC_PIPELINES],
-	    .vertexSize = pipelinesVertexSizes[i + NUM_DYNAMIC_PIPELINES]
+	    .instanceDataSize = pipelinesInstanceDataSizes[i + NUM_DYNAMIC_PIPELINES]
 	});
     }
 
@@ -282,6 +289,7 @@ void R_Init() {
     printfd("Initializing graphics pipelines\n");
 
     Pip_PreInit();
+    IPip_PreInit();
 
     initPipelines();
 
@@ -297,13 +305,13 @@ void R_Init() {
     glClearColor(.0f, .0f, .0f, 1.0f);
 }
 MeshID R_NewMesh(const PipID pipId) {
-    return Pip_NewMesh(getBasePip(pipId));
+    return IPip_NewMesh(getBaseIPip(pipId));
 }
 InstanceID R_NewInstance(const PipID pipId, const NewInstanceInfo info) {
     if (pipId >= NUM_DYNAMIC_PIPELINES) {
-	return PipStatic_NewInstance(statics + pipId - NUM_DYNAMIC_PIPELINES, pipelinesInstanceDataSizes[pipId], info);
+	return IPipStatic_NewInstance(statics + pipId - NUM_DYNAMIC_PIPELINES, pipelinesInstanceDataSizes[pipId], info);
     }
-    return PipDynamic_NewInstance(dynamics + pipId, pipelinesInstanceDataSizes[pipId], info);
+    return IPipDynamic_NewInstance(dynamics + pipId, pipelinesInstanceDataSizes[pipId], info);
 }
 size_t R_GetVertexSizeByPipelineId(const PipID pipId) {
     return pipelinesVertexSizes[pipId];
@@ -385,7 +393,7 @@ void R_DeleteTexture(const TextureID id) {
     ));
 }
 void R_DeleteInstance(const PipID pipId, const DeleteInstanceInfo info) {
-    Pip_DeleteInstance(getBasePip(pipId), info);
+    IPip_DeleteInstance(getBaseIPip(pipId), info);
 }
 void R_FreeIndicesVertices(const PipID pipId, const Region* const indicesRegion, const Region* const verticesRegion) {
     Arena_ReturnRegion(&indicesArena, indicesRegion);
@@ -433,20 +441,20 @@ void R_Loop(const float interp) {
     Uniform_Set_1F(interpUniform, interp);
 
     FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_NORMAL);
-    PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_NORMAL, readNormalIndex);
-    PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_INTERP, readInterpIndex);
+    IPipDynamic_Run(dynamics + GRAPHICS_PIPELINE_NORMAL, readNormalIndex);
+    IPipDynamic_Run(dynamics + GRAPHICS_PIPELINE_INTERP, readInterpIndex);
 
     FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_SKINNED);
-    PipDynamic_Run(dynamics + GRAPHICS_PIPELINE_SKINNED, readNormalIndex);
+    IPipDynamic_Run(dynamics + GRAPHICS_PIPELINE_SKINNED, readNormalIndex);
 
-    PipStatic_Run(statics + 0);
+    IPipStatic_Run(statics + 0);
 
     //BillboardPip_Run(&quadPip);
     BillboardPip_Run(&billboardPip);
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);
-    PipStatic_Run(statics + 1);
+    IPipStatic_Run(statics + 1);
 
     renderSyncs[readNormalIndex] = getSync();
 

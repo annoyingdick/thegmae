@@ -166,3 +166,8 @@ void ShaderProgram_Init_Compute(ShaderProgram* const sp, const ShaderProgramInit
 void ShaderProgram_Use(const ShaderProgram sp) {
     glUseProgram(sp);
 }
+void ShaderProgram_Dispatch(const ShaderProgram sp, const GLuint num) {
+    ShaderProgram_Use(sp);
+
+    GL_CHECK(glDispatchCompute(num, 1, 1));
+}

@@ -32,5 +32,6 @@ void ShaderProgram_Init_VFTess(ShaderProgram* sp, ShaderProgramInitInfo_VFTess i
 void ShaderProgram_Init_VFG(ShaderProgram* sp, ShaderProgramInitInfo_VFG info);
 void ShaderProgram_Init_Compute(ShaderProgram* sp, ShaderProgramInitInfo_Compute info);
 void ShaderProgram_Use(ShaderProgram sp);
+void ShaderProgram_Dispatch(ShaderProgram sp, GLuint num);
 
 #endif

@@ -7,7 +7,7 @@
 #include "GPUBuffer.h"
 #include "Render.h"
 
-#define INIT_NUM_INSTANCES 2
+#define INIT_NUM_MESHES 2
 #define NUM_RING_BUFFERS 2
 
 #define DECLARE_BUFFER_BINDINGS \
@@ -33,23 +33,26 @@ X(BUFFER_BINDING_TERRAIN_VERTICES)
 #define VEC4DUP(x) x[0], x[1], x[2], x[3]
 #define MAT4DUP(x) VEC4DUP(x[0]), VEC4DUP(x[1]), VEC4DUP(x[2]), VEC4DUP(x[3])
 
+//Base pipeline struct. Useless on its own, because it doesn't upload any draw commands into the gpu.
 typedef struct {
     Arena verticesArena, commandsArena;
-    ShaderProgram mainProgram, processInstancesProgram; //private
-    GPUBuffer verticesBuffer, commandsBuffer, usedInstancesIdsBuffer, instancesMeshIdsBuffer; //private
+    ShaderProgram mainProgram; //private
+    GPUBuffer verticesBuffer, commandsBuffer; //private
 
     MeshID nextMeshId;
-    InstanceID numInstances, instancesAllocationSize;
-
-    InstanceID* baseInstances;
 } Pip;
 
 typedef struct {
     ShaderProgramInitInfo_VF mainShaderInfo;
-    ShaderProgramInitInfo_Compute processInstancesShaderInfo;
 
-    size_t instanceDataSize, vertexSize;
+    size_t vertexSize;
 } PipInitInfo;
+
+typedef struct {
+    MeshID meshId;
+    InstanceID baseInstance, numInstances;
+    bool isCommandLast;
+} PipUploadMeshFirstTimeInfo;
 
 enum {
 #define X(x) x,
@@ -61,11 +64,11 @@ void Pip_PreInit();
 
 void Pip_Init(Pip* pip, PipInitInfo info);
 void Pip_UploadVertices(Pip* pip, GLsizeiptr vertexSize, UploadVerticesInfo info);
-MeshID Pip_NewMesh(Pip* pip);
-MeshID Pip_NewInstance(Pip* pip, NewInstanceInfo info);
+MeshID Pip_NewMesh(Pip* pip, RegionSize* outNewSize, bool* outIsLast);
 void Pip_UploadMesh(const Pip* pip, UploadMeshInfo info);
-void Pip_DeleteInstance(Pip* pip, DeleteInstanceInfo info);
+void Pip_UploadMeshFirstTime(Pip* pip, PipUploadMeshFirstTimeInfo info);
 void Pip_Run(const Pip* pip);
+void Pip_Draw(const Pip* pip);
 
 void Pip_DrawDebugGui(const Pip* pip, const char name[]);
 

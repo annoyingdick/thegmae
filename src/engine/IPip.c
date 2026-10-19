@@ -2,12 +2,13 @@
 #include "Uniform.h"
 #include "IPip.h"
 
-static ShaderProgram newInstanceProgram, deleteInstanceProgram;;
+static ShaderProgram newInstanceProgram, deleteInstanceProgram, clearCommandsProgram;
 static Uniform baseMeshIdUniform_newInstance, baseMeshIdUniform_deleteInstance;
 
 void IPip_PreInit() {
     ShaderProgram_Init_Compute(&newInstanceProgram, (ShaderProgramInitInfo_Compute){"newInstance.comp"});
     ShaderProgram_Init_Compute(&deleteInstanceProgram, (ShaderProgramInitInfo_Compute){"deleteInstance.comp"});
+    ShaderProgram_Init_Compute(&clearCommandsProgram, (ShaderProgramInitInfo_Compute){"clearCommands.comp"});
 
     Uniform_Init(&baseMeshIdUniform_newInstance, newInstanceProgram, "baseMeshId");
     Uniform_Init(&baseMeshIdUniform_deleteInstance, deleteInstanceProgram, "baseMeshId");
@@ -112,6 +113,7 @@ void IPip_Run(const IPip* const pip) {
     GPUBuffer_BindBase(pip->usedInstancesIdsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_USED_INSTANCES_IDS);
     GPUBuffer_BindBase(pip->instancesMeshIdsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_INSTANCES_MESH_IDS);
 
+    ShaderProgram_Dispatch(clearCommandsProgram, pip->base.nextMeshId);
     ShaderProgram_Dispatch(pip->processInstancesProgram, pip->numInstances);
 
     Pip_Draw(&pip->base);

@@ -6,12 +6,6 @@
 
 #define INIT_NUM_VERTICES 2
 
-static ShaderProgram clearCommandsProgram;
-
-void Pip_PreInit() {
-    ShaderProgram_Init_Compute(&clearCommandsProgram, (ShaderProgramInitInfo_Compute){"clearCommands.comp"});
-}
-
 void Pip_Init(Pip* const pip, const PipInitInfo info) {
     const GLsizeiptr sizes[] = {
 	INIT_NUM_VERTICES * info.vertexSize,
@@ -99,7 +93,7 @@ void Pip_UploadMeshFirstTime(Pip* const pip, const PipUploadMeshFirstTimeInfo in
     GL_CHECK(GPUBuffer_SubData(
 	pip->commandsBuffer,
 	(info.meshId * commandSize) + offset, 
-	//am i witnessing some life sentence crime?
+	//am i witnessing some life sentence crimes here right now?
 	(GLsizeiptr)(2 + (info.isCommandLast ? (commandSize / sizeof(GLuint)) + 1 : 0)) * (GLsizeiptr)sizeof(GLuint),
 	data
     ));
@@ -116,8 +110,6 @@ void Pip_Run(const Pip* const pip) {
     GPUBuffer_Bind(pip->commandsBuffer, GL_DRAW_INDIRECT_BUFFER);
     GPUBuffer_BindBase(pip->verticesBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_VERTICES);
     GPUBuffer_BindBase(pip->commandsBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_COMMANDS);
-
-    ShaderProgram_Dispatch(clearCommandsProgram, pip->nextMeshId);
 
     //glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 }

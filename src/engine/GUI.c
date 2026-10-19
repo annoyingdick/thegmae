@@ -123,9 +123,9 @@ static void initText(
 
     if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
     else {
-	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_GUI, info);
+	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_TEXT, info);
 
-	R_UploadStatic(GRAPHICS_PIPELINE_GUI, Mesh_NewInstance(mesh), sizeof(outline), &outline);
+	R_UploadStatic(GRAPHICS_PIPELINE_TEXT, mesh->id, sizeof(outline), &outline);
     }
 }
 static void checkJSMN(const int ret, const char path[const]) {

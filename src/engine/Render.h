@@ -30,11 +30,13 @@ typedef enum {
     GRAPHICS_PIPELINE_INTERP,
     GRAPHICS_PIPELINE_SKINNED,
     GRAPHICS_PIPELINE_STATIC,
-    GRAPHICS_PIPELINE_GUI,
+    GRAPHICS_PIPELINE_TEXT,
     GRAPHICS_PIPELINE_MAX_ENUM
 } PipID;
 
 #define NUM_DYNAMIC_PIPELINES GRAPHICS_PIPELINE_STATIC
+#define NPIP_BEGIN GRAPHICS_PIPELINE_TEXT
+#define NUM_STATIC_PIPELINES NPIP_BEGIN - GRAPHICS_PIPELINE_STATIC
 
 typedef struct {
     RegionSize count;
@@ -80,6 +82,7 @@ void R_FreeIndicesVertices(PipID pipId, const Region* indicesRegion, const Regio
 void R_ResizeTextureHandlesBuffer(RegionSize oldSize, RegionSize newSize);
 void R_SetViewportSize(int width, int height);
 void R_NewMuzzleFlash(float position[3], float direction[3]);
+void R_NewText(float position[3], float direction[3]);
 void R_Loop_UpdatePVMat();
 void R_Loop(float interp);
 void R_FixedLoop();

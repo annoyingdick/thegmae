@@ -60,8 +60,6 @@ enum {
 #undef X
 };
 
-void Pip_PreInit();
-
 void Pip_Init(Pip* pip, PipInitInfo info);
 void Pip_UploadVertices(Pip* pip, GLsizeiptr vertexSize, UploadVerticesInfo info);
 MeshID Pip_NewMesh(Pip* pip, RegionSize* outNewSize, bool* outIsLast);

@@ -90,8 +90,10 @@ void Mesh_InitWithData(Mesh* const mesh, const PipID pipId, const MeshInitWithDa
 	.firstIndex = mesh->indicesRegion.position,
 	.firstVertex = mesh->verticesRegion.position,
 	//for explanation visit this struct's declaration line
-	.numIndices = 0
+	.numIndices = mesh->pipId >= NPIP_BEGIN ? info.numIndices : 0
     });
+
+    //if (mesh->pipId >= NPIP_BEGIN) printf("%u %u\n", mesh->id, info.numIndices);
 }
 bool Mesh_IsValid(const Mesh* const mesh) {
     return mesh->indicesRegion.size;

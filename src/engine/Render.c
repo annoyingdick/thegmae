@@ -8,6 +8,7 @@
 #include "ModelsHandler.h"
 #include "DebugGuiHandler.h"
 #include "BillboardPip.h"
+#include "NPip.h"
 #include "Render.h"
 
 #define DO_OPENGL_DEBUG DEBUG
@@ -40,13 +41,14 @@ static mat4 pvMat;
 static mat4 perspectiveMat;
 
 static IPipDynamic dynamics[NUM_DYNAMIC_PIPELINES];
-static IPipStatic statics[GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES];
+static IPipStatic statics[NUM_STATIC_PIPELINES];
+static NPip npips[GRAPHICS_PIPELINE_MAX_ENUM - GRAPHICS_PIPELINE_TEXT];
 static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
     [GRAPHICS_PIPELINE_SKINNED] = MAX_BONES * sizeof(mat4),
     [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4),
-    [GRAPHICS_PIPELINE_GUI] = sizeof(float)
+    [GRAPHICS_PIPELINE_TEXT] = sizeof(float)
 };
 static const GLsizeiptr pipelinesVertexSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = (
@@ -56,7 +58,7 @@ static const GLsizeiptr pipelinesVertexSizes[] = {
     [GRAPHICS_PIPELINE_SKINNED] = (
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE + VERTEX_WEIGHTS_SIZE) * sizeof(float), 
     [GRAPHICS_PIPELINE_STATIC] = (VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float),
-    [GRAPHICS_PIPELINE_GUI] = (VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
+    [GRAPHICS_PIPELINE_TEXT] = (VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
 };
 
 static GLsync renderSyncs[NUM_RING_BUFFERS];
@@ -165,6 +167,8 @@ static GLsync getSync() {
     return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 static Pip* getBasePip(const PipID pipId) {
+    if (pipId >= NPIP_BEGIN) return &npips[pipId - NPIP_BEGIN].base;
+
     return pipId >= NUM_DYNAMIC_PIPELINES ? &statics[pipId - NUM_DYNAMIC_PIPELINES].base.base : &dynamics[pipId].base.base;
 }
 static IPip* getBaseIPip(const PipID pipId) {
@@ -215,19 +219,18 @@ static void initPipelines() {
 	    .instanceDataSize = pipelinesInstanceDataSizes[i]
 	});
     }
-    for (PipID i = 0; i < GRAPHICS_PIPELINE_MAX_ENUM - NUM_DYNAMIC_PIPELINES; i++) {
+    for (PipID i = 0; i < NUM_STATIC_PIPELINES; i++) {
 	const char* const vertexShaderNames[] = {
-	    "static.vert", "gui.vert"
+	    "static.vert"
 	};
 	const char* const piShaderNames[] = {
-	    "static.comp", "gui.comp"
+	    "static.comp"
 	};
 
 	IPipStatic_Init(statics + i, (IPipInitInfo){
 	    .baseInfo = {
 		.mainShaderInfo = {
-		    .vertexShaderSourceFileName = vertexShaderNames[i],
-		    .fragmentShaderSourceFileName = i == 1 ? "gui.frag" : "normal.frag"
+		    .vertexShaderSourceFileName = vertexShaderNames[i], .fragmentShaderSourceFileName = "normal.frag"
 		},
 		.vertexSize = pipelinesVertexSizes[i + NUM_DYNAMIC_PIPELINES]
 	    },
@@ -238,6 +241,15 @@ static void initPipelines() {
     }
 
     BillboardPip_Init(&billboardPip, "billboard.geom", "textures/muzzle.png", "textures/muzzleface.png");
+    NPip_Init(npips + 0, (NPipInitInfo){
+	.baseInfo = {
+	    .mainShaderInfo = { 
+		.vertexShaderSourceFileName = "gui.vert", .fragmentShaderSourceFileName = "gui.frag" 
+	    },
+	    .vertexSize = pipelinesVertexSizes[GRAPHICS_PIPELINE_TEXT]
+	},
+	.meshDataSize = pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_TEXT]
+    });
 }
 static void updateUniforms() {
     mat4 mats[2];
@@ -288,7 +300,6 @@ void R_Init() {
 
     printfd("Initializing graphics pipelines\n");
 
-    Pip_PreInit();
     IPip_PreInit();
 
     initPipelines();
@@ -305,10 +316,13 @@ void R_Init() {
     glClearColor(.0f, .0f, .0f, 1.0f);
 }
 MeshID R_NewMesh(const PipID pipId) {
+    if (pipId >= NPIP_BEGIN) return NPip_NewMesh(npips + pipId - NPIP_BEGIN, pipelinesInstanceDataSizes[pipId]) ;
+    
     return IPip_NewMesh(getBaseIPip(pipId));
 }
 InstanceID R_NewInstance(const PipID pipId, const NewInstanceInfo info) {
     if (pipId >= NUM_DYNAMIC_PIPELINES) {
+	if (pipId == NPIP_BEGIN) throwFatal("", "");
 	return IPipStatic_NewInstance(statics + pipId - NUM_DYNAMIC_PIPELINES, pipelinesInstanceDataSizes[pipId], info);
     }
     return IPipDynamic_NewInstance(dynamics + pipId, pipelinesInstanceDataSizes[pipId], info);
@@ -325,7 +339,7 @@ void R_NDCtoDirection(const NDC coords, float* const dest) {
     glm_mat4_inv(R_GetPVmat(), inv);
     glm_mat4_mulv3(inv, (vec3){coords[0], coords[1], 1}, 1, dest);
 }
-void R_UploadIndices(Region* const outRegion, const RegionSize count, const Index3D indices[]) {
+void R_UploadIndices(Region* const outRegion, const RegionSize count, const Index3D indices[const]) {
     CHECKINIT("Tried to upload indices");
 
     const RegionSize oldSize = indicesArena.size;
@@ -378,7 +392,7 @@ void* R_GetUploadPtr(const PipID pipId, const InstanceID id) {
     return mapped + (id * pipelinesInstanceDataSizes[pipId]);
 }
 void R_UploadMesh(const PipID pipId, const UploadMeshInfo info) {
-    Pip_UploadMesh(getBasePip(pipId), info, 0);
+    Pip_UploadMesh(getBasePip(pipId), info, pipId >= NPIP_BEGIN);
 }
 void R_DeleteMesh(const PipID pipId, const MeshID meshId) {
     Pip* const pip = getBasePip(pipId);
@@ -454,7 +468,7 @@ void R_Loop(const float interp) {
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);
-    IPipStatic_Run(statics + 1);
+    NPip_Run(npips + 0);
 
     renderSyncs[readNormalIndex] = getSync();
 

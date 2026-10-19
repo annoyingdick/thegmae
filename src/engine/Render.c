@@ -7,7 +7,7 @@
 #include "TexturesHandler.h"
 #include "ModelsHandler.h"
 #include "DebugGuiHandler.h"
-#include "BillboardPip.h"
+#include "FixedPipMuzzle.h"
 #include "NPip.h"
 #include "Render.h"
 
@@ -32,7 +32,7 @@
 static Arena indicesArena;
 static GPUBuffer indicesBuffer, textureHandlesBuffer, uniformsBuffer; //private
 static Uniform interpUniform; //private
-static BillboardPip billboardPip;
+static FixedPipMuzzle muzzlePip;
 
 static GLuint globalVao; //private
 static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInterpIndex;
@@ -240,7 +240,7 @@ static void initPipelines() {
 	});
     }
 
-    BillboardPip_Init(&billboardPip, "billboard.geom", "textures/muzzle.png", "textures/muzzleface.png");
+    FixedPipMuzzle_Init(&muzzlePip, "billboard.geom", "textures/muzzle.png", "textures/muzzleface.png");
     NPip_Init(npips + 0, (NPipInitInfo){
 	.baseInfo = {
 	    .mainShaderInfo = { 
@@ -426,7 +426,7 @@ void R_SetViewportSize(const int width, const int height) {
     setPerspectiveMatrix((float)width / (float)height);
 }
 void R_NewMuzzleFlash(vec3 position, vec3 direction) {
-    BillboardPip_NewBillboard(&billboardPip, position, direction);
+    FixedPipMuzzle_NewMuzzle(&muzzlePip, position, direction);
 }
 void R_Loop_UpdatePVMat() {
     Camera_GetPerspectiveCameraMatrix(perspectiveMat, pvMat);
@@ -464,7 +464,7 @@ void R_Loop(const float interp) {
     IPipStatic_Run(statics + 0);
 
     //BillboardPip_Run(&quadPip);
-    BillboardPip_Run(&billboardPip);
+    FixedPipMuzzle_Run(&muzzlePip);
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);

@@ -6,16 +6,19 @@
 
 typedef struct {
     NFixedPip base;
-    Uniform currentTimeUniform;
+    Uniform currentTimeUniform, textureUniform;
 
-    float texture, time;
+    TextureID texture;
+    float time;
 
     float* timestamps;
     RegionPosition* indices;
+    vec2* sizes;
 } NFixedPipFrame;
 
 void NFixedPipFrame_Init(NFixedPipFrame* pip);
 void NFixedPipFrame_NewFrame(NFixedPipFrame* pip, vec2 size);
+void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, vec2 windowSize);
 void NFixedPipFrame_Run(NFixedPipFrame* pip);
 
 #endif

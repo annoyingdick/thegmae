@@ -429,6 +429,8 @@ void R_SetViewportSize(const int width, const int height) {
     glViewport(0, 0, width, height);
 
     setPerspectiveMatrix((float)width / (float)height);
+
+    NFixedPipFrame_UpdateFrames(&framesPip, (vec2){(float)width, (float)height});
 }
 void R_NewMuzzleFlash(vec3 position, vec3 direction) {
     FixedPipMuzzle_NewMuzzle(&muzzlePip, position, direction);
@@ -473,11 +475,11 @@ void R_Loop(const float interp) {
 
     //BillboardPip_Run(&quadPip);
     FixedPipMuzzle_Run(&muzzlePip);
-    NFixedPipFrame_Run(&framesPip);
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);
     NPip_Run(npips + 0);
+    NFixedPipFrame_Run(&framesPip);
 
     renderSyncs[readNormalIndex] = getSync();
 

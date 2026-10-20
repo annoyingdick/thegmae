@@ -81,6 +81,8 @@ static bool isFenceSignaled(GLsync fence) {
 static void allocateTextureGL(const GLuint texture, const GLenum format, const int width, const int height) {
     glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
     glTextureStorage2D(texture, 1, format, width, height);
 }
 //returns true if you won't need to upload batches anymore

@@ -80,6 +80,7 @@ void R_DeleteTexture(TextureID id);
 void R_DeleteInstance(PipID pipId, DeleteInstanceInfo info);
 void R_FreeIndicesVertices(PipID pipId, const Region* indicesRegion, const Region* verticesRegion);
 void R_ResizeTextureHandlesBuffer(RegionSize oldSize, RegionSize newSize);
+//Shall be called whenever the window gets resized
 void R_SetViewportSize(int width, int height);
 void R_NewMuzzleFlash(float position[3], float direction[3]);
 void R_NewText(float position[3], float direction[3]);

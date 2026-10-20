@@ -1,4 +1,3 @@
-#include "DrawElementsIndirectCommand.h"
 #include "NPip.h"
 
 void NPip_Init(NPip* const pip, const NPipInitInfo info) {

@@ -9,6 +9,7 @@
 #include "DebugGuiHandler.h"
 #include "FixedPipMuzzle.h"
 #include "NPip.h"
+#include "NFixedPipFrame.h"
 #include "Render.h"
 
 #define DO_OPENGL_DEBUG DEBUG
@@ -33,6 +34,7 @@ static Arena indicesArena;
 static GPUBuffer indicesBuffer, textureHandlesBuffer, uniformsBuffer; //private
 static Uniform interpUniform; //private
 static FixedPipMuzzle muzzlePip;
+static NFixedPipFrame framesPip;
 
 static GLuint globalVao; //private
 static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInterpIndex;
@@ -250,6 +252,7 @@ static void initPipelines() {
 	},
 	.meshDataSize = pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_TEXT]
     });
+    NFixedPipFrame_Init(&framesPip);
 }
 static void updateUniforms() {
     mat4 mats[2];
@@ -362,7 +365,9 @@ void R_UploadVertices(const PipID pipId, const UploadVerticesInfo info) {
 }
 void R_UploadStatic(const PipID pipId, const InstanceID id, const size_t size, const void* const data) {
     GL_CHECK(GPUBuffer_SubData(
-	statics[pipId - NUM_DYNAMIC_PIPELINES].instancesDataBuffer, 
+	pipId >= NPIP_BEGIN ? npips[pipId - NPIP_BEGIN].meshesDataBuffer
+	: statics[pipId - NUM_DYNAMIC_PIPELINES].instancesDataBuffer, 
+
 	id * pipelinesInstanceDataSizes[pipId], (GLsizeiptr)size, data
     ));
 }
@@ -428,6 +433,9 @@ void R_SetViewportSize(const int width, const int height) {
 void R_NewMuzzleFlash(vec3 position, vec3 direction) {
     FixedPipMuzzle_NewMuzzle(&muzzlePip, position, direction);
 }
+void R_NewFrame(vec2 size) {
+    NFixedPipFrame_NewFrame(&framesPip, size);
+}
 void R_Loop_UpdatePVMat() {
     Camera_GetPerspectiveCameraMatrix(perspectiveMat, pvMat);
 }
@@ -465,6 +473,7 @@ void R_Loop(const float interp) {
 
     //BillboardPip_Run(&quadPip);
     FixedPipMuzzle_Run(&muzzlePip);
+    NFixedPipFrame_Run(&framesPip);
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);

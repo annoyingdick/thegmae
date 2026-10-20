@@ -83,6 +83,7 @@ void R_ResizeTextureHandlesBuffer(RegionSize oldSize, RegionSize newSize);
 void R_SetViewportSize(int width, int height);
 void R_NewMuzzleFlash(float position[3], float direction[3]);
 void R_NewText(float position[3], float direction[3]);
+void R_NewFrame(float size[2]);
 void R_Loop_UpdatePVMat();
 void R_Loop(float interp);
 void R_FixedLoop();

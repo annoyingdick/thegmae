@@ -1,5 +1,3 @@
-#include <math.h>
-#include "TexturesHandler.h"
 #include "Pip.h"
 #include "FixedPip.h"
 

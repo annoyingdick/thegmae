@@ -290,6 +290,8 @@ static void initHintText() {
 void GUI_Init() {
     initGlyphs();
 
+    R_NewFrame((vec2){1000, 1000});
+
     GUI_UpdateTexts();
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {

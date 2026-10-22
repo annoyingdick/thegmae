@@ -417,7 +417,7 @@ void R_SetViewportSize(const int width, const int height) {
 
     setPerspectiveMatrix((float)width / (float)height);
 
-    NFixedPipFrame_UpdateFrames(&framesPip, (vec2s){{(float)width, (float)height}});
+    NFixedPipFrame_UpdateFrames(&framesPip, (float)height / (float)width);
 }
 void R_NewMuzzleFlash(const Ray ray) {
     FixedPipMuzzle_NewMuzzle(&muzzlePip, ray.position, ray.direction);

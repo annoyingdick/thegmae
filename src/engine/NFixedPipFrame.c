@@ -25,14 +25,12 @@ static const Index3D indices[] = {
     10, 11, 14, 11, 14, 15
 };
 
-static void uploadVertices(const NFixedPipFrame* const pip, const vec2s size, const vec2s windowSize, const MeshID id) {
-    const float cornerSize = 100, x = cornerSize / windowSize.raw[0], y = cornerSize / windowSize.raw[1];
+static void uploadVertices(const NFixedPipFrame* const pip, const vec2s size, const float ratio, const MeshID id) {
+    const float cornerSize = .01f, x = cornerSize * ratio, y = cornerSize;
 
-    const vec2s nsize = glms_vec2_div(size, windowSize);
+    const float rightf = size.raw[0] * ratio, rightc = rightf - x, upperf = size.raw[1], upperc = upperf - y;
 
-    const float rightf = nsize.raw[0], rightc = rightf - x, upperf = nsize.raw[1], upperc = upperf - y;
-
-    const float data[] = {
+    float data[] = {
 	0,      0, FREE_CORNER,
 	x,      0, LEFT_CORNER,
 	rightc, 0, RIGHT_CORNER,
@@ -54,6 +52,11 @@ static void uploadVertices(const NFixedPipFrame* const pip, const vec2s size, co
 	rightf, upperf, FREE_CORNER
     };
 
+    for (size_t i = 0; i < ARRAYSIZE(data); i += 4) {
+	data[i] -= 1;
+	data[i + 1] += 1 - upperf;
+    }
+
     GL_CHECK(GPUBuffer_SubData(pip->base.base.verticesBuffer, (GLsizeiptr)id * MESH_SIZE, sizeof(data), data));
 }
 
@@ -74,10 +77,6 @@ void NFixedPipFrame_Init(NFixedPipFrame* const pip) {
     pip->texture = TexturesHandler_BeginLoadingTask(texturePath, texturePath);
 }
 void NFixedPipFrame_NewFrame(NFixedPipFrame* const pip, const vec2s size) {
-    float windowX, windowY;
-
-    WH_GetWindowSize(&windowX, &windowY);
-
     //raw data for the gpu
     Index3D indicesData[ARRAYSIZE(indices)];
 
@@ -101,10 +100,10 @@ void NFixedPipFrame_NewFrame(NFixedPipFrame* const pip, const vec2s size) {
     pip->indices[id] = indicesRegion.position;
     pip->sizes[id] = size;
 
-    uploadVertices(pip, size, (vec2s){{windowX, windowY}}, id);
+    uploadVertices(pip, size, WH_GetWindowInvRatio(), id);
 }
-void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, const vec2s windowSize) {
-    for (MeshID i = 0; i < pip->base.base.numMeshes; i++) uploadVertices(pip, pip->sizes[i], windowSize, i);
+void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, const float ratio) {
+    for (MeshID i = 0; i < pip->base.base.numMeshes; i++) uploadVertices(pip, pip->sizes[i], ratio, i);
 }
 void NFixedPipFrame_Run(NFixedPipFrame* const pip) {
     const float timemult = .0005f;
@@ -124,5 +123,10 @@ void NFixedPipFrame_Run(NFixedPipFrame* const pip) {
     Uniform_Set_1F(pip->currentTimeUniform, pip->time);
     Uniform_Set_1UI(pip->textureUniform, pip->texture);
 
-    GL_CHECK(glDrawElements(GL_TRIANGLES, pip->base.base.numMeshes * ARRAYSIZE(indices), GL_UNSIGNED_INT, 0));
+    //printf("%llu\n", pip->base.base.numMeshes * ARRAYSIZE(indices));
+    //TODO: replace to glDrawElementsIndirect
+    GL_CHECK(glDrawElements(
+	GL_TRIANGLES, pip->base.base.numMeshes * ARRAYSIZE(indices), 
+	GL_UNSIGNED_INT, (void*)(pip->indices[0] * sizeof(Index3D))
+    ));
 }

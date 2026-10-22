@@ -201,6 +201,13 @@ void WH_GetWindowSize(float* const width, float* const height) {
     *width = (float)w;
     *height = (float)h;
 }
+float WH_GetWindowInvRatio() {
+    int w, h;
+
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+
+    return (float)h / (float)w;
+}
 float WH_GetDeltaTime() {
     return (float)deltaTime / NANOSECONDS_IN_ONE_SECOND * SPEEDUP_FACTOR;
 }

@@ -64,22 +64,24 @@ static TextureID getAtlas(float* const width, float* const height) {
     return texture;
 }
 static void alignText(
-    vec2s* const position, const float windowX, const float windowY, const char c, const bool alignRight, const bool alignTop
+    vec2s* const position, const float size, const float ratio, const char c, const bool alignRight, const bool alignTop
 ) {
     Glyph* const glyph = characters + c - firstChar;
 
     const float magic = .1f;
 
-    if (alignRight) position->raw[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) / windowX;
-    if (alignTop) position->raw[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) / windowY;
+    if (alignRight) position->raw[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) * size * ratio;
+    if (alignTop) position->raw[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) * size;
 }
-static void initText(
-    Mesh* const mesh, const char text[const], vec2s position, float size, float outline, 
+static vec2s initText(
+    Mesh* const mesh, const char text[const], vec2s position, const float size, const float outline, const float xmax,
     const bool alignRight, const bool alignTop
 ) {
-    const size_t textLength = strlen(text);
+    vec2s maxCoords;
 
-    float windowX, windowY;
+    const vec2s origPos = position;
+    const size_t textLength = strlen(text);
+    const float ratio = WH_GetWindowInvRatio();
 
     Quad vertices[textLength];
     QuadIndices indices[textLength];
@@ -91,36 +93,43 @@ static void initText(
 	.indices = indices[0]
     };
 
-    WH_GetWindowSize(&windowX, &windowY);
+    maxCoords.raw[0] = -INFINITY;
+    maxCoords.raw[1] = INFINITY;
 
-    windowX /= size;
-    windowY /= size;
+    alignText(&position, size, ratio, text[0], alignRight, alignTop);
 
-    alignText(&position, windowX, windowY, text[0], alignRight, alignTop);
-
-    for (size_t i = alignRight ? textLength - 1 : 0; alignRight ? !ISINVALID(i) : i < textLength; alignRight ? i-- : i++) {
+    for (size_t i = alignRight ? textLength - 1 : 0; alignRight ? !ISINVALID(i) : i < textLength; i += alignRight ? -1 : 1) {
 	const Index3D order[] = {0, 1, 2, 0, 2, 3};
 
 	for (size_t j = 0; j < ARRAYSIZE(order); j++) indices[i][j] = order[j] + (i * 4);
 
+	if (text[i] == ' ' && position.raw[0] - origPos.raw[0] > xmax) {
+	    position.raw[0] = origPos.raw[0];
+	    position.raw[1] -= size * 4 / 3;
+
+	    if (position.raw[1] < maxCoords.raw[1]) maxCoords.raw[1] = position.raw[1];
+
+	    continue;
+	}
+
 	if (text[i] >= firstChar) {
 	    Glyph* const glyph = characters + text[i] - firstChar;
 
-	    vertices[i][0].raw[0] = vertices[i][3].raw[0] = (glyph->coords[RIGHT] / windowX) + position.raw[0];
-	    vertices[i][1].raw[0] = vertices[i][2].raw[0] = (glyph->coords[LEFT] / windowX) + position.raw[0];
+	    vertices[i][0].raw[0] = vertices[i][3].raw[0] = (glyph->coords[RIGHT] * size * ratio) + position.raw[0];
+	    vertices[i][1].raw[0] = vertices[i][2].raw[0] = (glyph->coords[LEFT] * size * ratio) + position.raw[0];
 
-	    vertices[i][0].raw[1] = vertices[i][1].raw[1] = (glyph->coords[TOP] / windowY) + position.raw[1];
-	    vertices[i][2].raw[1] = vertices[i][3].raw[1] = (glyph->coords[BOTTOM] / windowY) + position.raw[1];
+	    vertices[i][0].raw[1] = vertices[i][1].raw[1] = (glyph->coords[TOP] * size) + position.raw[1];
+	    vertices[i][2].raw[1] = vertices[i][3].raw[1] = (glyph->coords[BOTTOM] * size) + position.raw[1];
 
 	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(
 		glyph->texCoords[j].raw, vertices[i][j].raw + VERTEX2D_TEXCOORDS_OFFSET
 	    );
 	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
+	    if (position.raw[0] > maxCoords.raw[0]) maxCoords.raw[0] = position.raw[0];
 
-	    position.raw[0] += glyph->advance / windowX * (alignRight ? -1.f : 1);
+	    position.raw[0] += glyph->advance * size * ratio * (alignRight ? -1.f : 1);
 	}
     }
-
 
     if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
     else {
@@ -128,6 +137,13 @@ static void initText(
 
 	R_UploadStatic(GRAPHICS_PIPELINE_TEXT, mesh->id, sizeof(outline), &outline);
     }
+
+    const vec2s ret = glms_vec2_sub(maxCoords, origPos);// {{maxCoords.raw[0], maxCoords.raw[0]}};
+
+    //printf("\n%s\n %f %f   %f %f\n", text, origPos.raw[0], origPos.raw[1], maxCoords.raw[0], maxCoords.raw[1]);
+    //printf("\n%s\n %f %f\n", text, ret.raw[0], ret.raw[1]);
+
+    return (vec2s){{ret.raw[0] * 2, -ret.raw[1]}};
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {
@@ -264,6 +280,9 @@ static void initGlyphs() {
     mallocarr(characters, maxChar - firstChar + 1);
 
     processTokens(tokens, js, path, numTokens);
+
+    //before i fixed this, the space glyph had been filled with junk like 0xBAADF00D which caused severe artifacts
+    memset(characters + ' ' - firstChar, UINT8_MAX, sizeof(*characters) - sizeof(characters->advance));
     
     free(js);
     free(tokens);
@@ -273,27 +292,27 @@ static void initAmmoText() {
 
     const int size = snprintf(NULL, 0, format, ammoLeft, ammoMag);
 
-    const float fontSize = 200;
+    const float fontSize = .05f;
 
     char string[size];
 
     sprintf(string, format, ammoLeft, ammoMag);
 
-    initText(&meshAmmo, string, (vec2s){{1, 1}}, fontSize, 1, true, true);
+    initText(&meshAmmo, string, (vec2s){{1, 1}}, fontSize, 1, INFINITY, true, true);
 }
-static void initHintText() {
-    const float size = 100;
+static vec2s initHintText() {
+    const float size = .04f, xmax = .5f;
 
-    initText(&meshHint, "Point and click with your mouse to move character. "
-	"Use the right mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, false, true);
+    return initText(&meshHint, "Press the right mouse button to move character. "
+	"Use the middle mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, xmax, false, true);
 }
 
 void GUI_Init() {
     initGlyphs();
 
-    R_NewFrame((vec2s){{1000, 1000}});
+    initAmmoText();
 
-    GUI_UpdateTexts();
+    R_NewFrame(initHintText());
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;

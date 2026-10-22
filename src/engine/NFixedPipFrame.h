@@ -18,7 +18,7 @@ typedef struct {
 
 void NFixedPipFrame_Init(NFixedPipFrame* pip);
 void NFixedPipFrame_NewFrame(NFixedPipFrame* pip, vec2s size);
-void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, vec2s windowSize);
+void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, float ratio);
 void NFixedPipFrame_Run(NFixedPipFrame* pip);
 
 #endif

@@ -28,7 +28,7 @@
     Character*: Character_DrawDebugGui, \
     Pip*: Pip_DrawDebugGui, \
     AnimationTrack*: AnimationTrack_DrawDebugGui, \
-    vec4*: DGH_Mat4, const vec4*: DGH_Mat4, \
+    mat4s: DGH_Mat4, \
     char*: DGH_String \
 )(x, n)
 
@@ -44,7 +44,7 @@
     Mesh*: DGH_MESH_ARRAY, \
     Bone*: DGH_BONE_ARRAY, \
     Animation*: DGH_ANIMATION_ARRAY, const Animation*: DGH_ANIMATION_ARRAY, \
-    vec3*: DGH_VEC3_ARRAY, \
+    vec3s*: DGH_VEC3_ARRAY, \
     Triangle*: DGH_TRIANGLE_ARRAY, \
     IPipDynamic*: DGH_PIPDYNAMIC_ARRAY, \
     Character*: DGH_CHARACTER_ARRAY, \
@@ -136,7 +136,7 @@ void DGH_U8(uint8_t value, const char name[]);
 void DGH_Float(float value, const char name[]);
 void DGH_Bool(bool value, const char name[]);
 void DGH_Arena(const Arena* arena, const char name[]);
-void DGH_Mat4(const mat4 mat, const char name[]);
+void DGH_Mat4(mat4s mat, const char name[]);
 void DGH_Vec3(const float* vec, const char name[]);
 void DGH_Vec2(const float* vec, const char name[]);
 void DGH_String(const char value[], const char name[]);

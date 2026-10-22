@@ -60,17 +60,17 @@ X(bool, hasGun)
 typedef struct Character Character;
 
 struct Character {
-    vec3Array path;
+    vec3sArray path;
 
 #define X(type, name) type name;
 VARS_CHARACTER
 #undef X
 
-    vec3 position, muzzlePosition;
-    vec2 direction;
+    vec3s position, muzzlePosition;
+    vec2s direction;
 
     Character* target;
-    float* localMuzzlePosition;
+    vec3s* localMuzzlePosition;
 
     AnimationTrack tracks[NUM_NOTHING_ANIMATIONS];
     AnimationTrack wtracks[SLOT_MAX_ENUM - 1][NUM_WEAPON_ANIMATIONS];
@@ -86,7 +86,7 @@ void Character_BeginSprinting(Character* character);
 void Character_StopSprinting(Character* character);
 void Character_ChooseSlot(Character* character, SlotID slot);
 void Character_SwitchAim(Character* character, bool aim);
-void Character_GoTo(Character* character, vec3 goal, TriangleID goalTri);
+void Character_GoTo(Character* character, vec3s goal, TriangleID goalTri);
 void Character_TryInitAnimations(Character* character);
 void Character_HandleFatigue(Character* character);
 //You'd better not use this function alone if your character can shoot. If you do anyway, please adapt this line:

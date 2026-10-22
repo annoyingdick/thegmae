@@ -7,21 +7,21 @@ typedef uint8_t AnimationID;
 typedef size_t KeyframeID;
 
 typedef struct {
-    vec3* translationVectors;
+    vec3s* translationVectors;
     float* timestamps;
 
     KeyframeID numKeyframes;
 } KeyframeSetTranslation;
 
 typedef struct {
-    versor* rotationVersors;
+    versors* rotationVersors;
     float* timestamps;
 
     KeyframeID numKeyframes;
 } KeyframeSetRotation;
 
 typedef struct {
-    vec3* scaleVectors;
+    vec3s* scaleVectors;
     float* timestamps;
 
     KeyframeID numKeyframes;

@@ -18,7 +18,7 @@ typedef struct {
 void FixedPipMuzzle_Init(
     FixedPipMuzzle* pip, const char geometrySource[], const char texturePath[], const char faceTexturePath[]
 );
-void FixedPipMuzzle_NewMuzzle(FixedPipMuzzle* pip, vec3 position, vec3 direction);
+void FixedPipMuzzle_NewMuzzle(FixedPipMuzzle* pip, vec3s position, vec3s direction);
 void FixedPipMuzzle_Run(FixedPipMuzzle* pip);
 
 #endif

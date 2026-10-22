@@ -1,5 +1,5 @@
 #include <SDL3/SDL_Init.h>
-#include <cglm/mat4.h>
+#include <cglm/struct/mat4.h>
 #include "engine/Player.h"
 #include "engine/Npc.h"
 #include "engine/Camera.h"
@@ -20,8 +20,8 @@ static GPUBuffer linesVerticesBuffer, linesIndicesBuffer;
 
 static InstancePtrID testCubes[NUM_TEST_CUBES];
 static PhysBodyID testCubesPhys[NUM_TEST_CUBES];
-static mat4 testCubesTrans[NUM_TEST_CUBES];
-static vec3 cameraPos;
+static mat4s testCubesTrans[NUM_TEST_CUBES];
+static vec3s cameraPos;
 static NDC ndc;
 
 static float moveForward, moveBack, moveRight, moveLeft;
@@ -44,8 +44,8 @@ static void createStaticCube(vec3 pos, vec3 halfSize) {
     IH_UploadStatic(ptrId, sizeof(mat), mat);
 }
 */
-static InstancePtrID createDynamicCube(vec3 pos, vec3 halfSize, PhysBodyID* const outPhysId) {
-    *outPhysId = PSH_CreateBoxBody(true, pos, halfSize);
+static InstancePtrID createDynamicCube(const vec3s pos, const vec3s halfSize, PhysBodyID* const outPhysId) {
+    *outPhysId = PSH_CreateBoxBody(true, pos.raw, halfSize.raw);
 
     return IH_NewInstance(&cubeMeshDyn);
 }
@@ -74,7 +74,7 @@ void GM_Init() {
 
     nforeach (Character* const an, angry)
 	Character_Init(an, &weaponMesh);
-	NH_GetRandomPoint(an->position);
+	NH_GetRandomPoint(&an->position);
 
 	an->hasGun = an - angry != 100000;
 
@@ -100,12 +100,12 @@ void GM_Init() {
     //createStaticCube((vec3){0, 0, -1}, (vec3){10, 1, 0.01f});
 
     for (size_t i = 0; i < NUM_TEST_CUBES; i++) {
-	testCubes[i] = createDynamicCube((vec3){100, 100, 0}, GLM_VEC3_ONE, testCubesPhys + i);
+	testCubes[i] = createDynamicCube((vec3s){{100, 100, 0}}, glms_vec3_one(), testCubesPhys + i);
     }
 
-    const mat4 mat = GLM_MAT4_IDENTITY_INIT;
+    const mat4s mat = glms_mat4_identity();
 
-    IH_UploadStatic(IH_NewInstance(&navMesh), sizeof(mat), mat);
+    IH_UploadStatic(IH_NewInstance(&navMesh), sizeof(mat), &mat);
 
     //if (lol) {}
 
@@ -204,14 +204,11 @@ void GM_Loop(const float interp) {
 	}
     }
     if (mouse3) {
-	Ray ray;
+	Ray ray = {.position = Camera_GetPosition(), .direction = R_NDCtoDirection(ndc)};
 
-	R_NDCtoDirection(ndc, ray[1]);
-	Camera_GetPosition(ray[0]);
+	const TriangleID goalTri = Geometry_Raycast(NH_GetGeometry(), ray, &ray.position);
 
-	const TriangleID goalTri = Geometry_Raycast(NH_GetGeometry(), ray, ray[0]);
-
-	if (!ISINVALID(goalTri)) Character_GoTo(&character, ray[0], goalTri);
+	if (!ISINVALID(goalTri)) Character_GoTo(&character, ray.position, goalTri);
 
 	mouse3 = false;
     }
@@ -222,9 +219,9 @@ void GM_Loop(const float interp) {
 
     nforeach (Character* const an, angry)
 	if (rand() < 100 && an->hasGun) {
-	    vec3 goal;
+	    vec3s goal;
 
-	    const TriangleID goalTri = NH_GetRandomPoint(goal);
+	    const TriangleID goalTri = NH_GetRandomPoint(&goal);
 
 	    Character_GoTo(an, goal, goalTri);
 	}
@@ -237,8 +234,8 @@ void GM_Loop(const float interp) {
     const float moveX = moveLeft - moveRight, moveZ = moveForward - moveBack;
     const float speed = Camera_GetZoomDistance() * WH_GetDeltaTime();
 
-    cameraPos[0] += (sinf(Camera_GetYaw()) * moveX + cosf(Camera_GetYaw()) * moveZ) * speed;
-    cameraPos[2] += (sinf(Camera_GetYaw()) * moveZ - cosf(Camera_GetYaw()) * moveX) * speed;
+    cameraPos.raw[0] += (sinf(Camera_GetYaw()) * moveX + cosf(Camera_GetYaw()) * moveZ) * speed;
+    cameraPos.raw[2] += (sinf(Camera_GetYaw()) * moveZ - cosf(Camera_GetYaw()) * moveX) * speed;
 
     Camera_SetLookAtPosition(cameraPos);
 
@@ -275,10 +272,8 @@ void GM_R_PreFixedLoopOnce() {
     //PSH_SetGravity((vec3){(float)(rand() - RAND_MAX / 2) / RAND_MAX, 0, 0});
 
     for (size_t i = 0; i < NUM_TEST_CUBES; i++) {
-	glm_mat4_copy(testCubesTrans[i], IH_GetUploadPtr(testCubes[i]));
+	*(mat4s*)IH_GetUploadPtr(testCubes[i]) = testCubesTrans[i];
 
-	PSH_GetTransform(testCubesPhys[i], testCubesTrans[i]);
-
-	glm_mat4_copy(testCubesTrans[i], IH_GetUploadPtr(testCubes[i]) + sizeof(mat4));
+	glm_mat4_copy(GLM_MAT4_IDENTITY, IH_GetUploadPtr(testCubes[i]) + sizeof(mat4));
     }
 }

@@ -1,8 +1,7 @@
 //using jsmn from cgltf
 #define CGLTF_IMPLEMENTATION
 
-#include <cglm/types.h>
-#include <cglm/vec2.h>
+#include <cglm/struct/vec2.h>
 #include <stb_image.h>
 #include "PathHandler.h"
 #include "Mesh.h"
@@ -11,7 +10,7 @@
 #include "GUI.h"
 
 typedef Index3D QuadIndices[3 + 3];
-typedef vec4 Quad[4]; //two floats for position and other two for tex. coords
+typedef vec4s Quad[4]; //two floats for position and other two for tex. coords
 
 enum {
     LEFT,
@@ -23,13 +22,13 @@ enum {
 
 typedef struct {
     float coords[INVALID_SIDE];
-    vec2 texCoords[4];
+    vec2s texCoords[4];
     float advance;
 } Glyph;
 
 static Mesh meshAmmo, meshHint;
 
-static Ammo ammoMag = 10000000, ammoLeft;
+static Ammo ammoMag = MAXT(ammoMag), ammoLeft;
 
 static char firstChar;
 
@@ -65,17 +64,17 @@ static TextureID getAtlas(float* const width, float* const height) {
     return texture;
 }
 static void alignText(
-    vec2 position, const float windowX, const float windowY, const char c, const bool alignRight, const bool alignTop
+    vec2s* const position, const float windowX, const float windowY, const char c, const bool alignRight, const bool alignTop
 ) {
     Glyph* const glyph = characters + c - firstChar;
 
     const float magic = .1f;
 
-    if (alignRight) position[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) / windowX;
-    if (alignTop) position[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) / windowY;
+    if (alignRight) position->raw[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) / windowX;
+    if (alignTop) position->raw[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) / windowY;
 }
 static void initText(
-    Mesh* const mesh, const char text[const], vec2 position, float size, float outline, 
+    Mesh* const mesh, const char text[const], vec2s position, float size, float outline, 
     const bool alignRight, const bool alignTop
 ) {
     const size_t textLength = strlen(text);
@@ -88,7 +87,7 @@ static void initText(
     const MeshInitWithDataInfo info = {
 	.verticesSize = textLength * 4,
 	.numIndices = textLength * sizeof(QuadIndices) / sizeof(**indices),
-	.vertices = vertices[0][0],
+	.vertices = vertices[0][0].raw,
 	.indices = indices[0]
     };
 
@@ -97,7 +96,7 @@ static void initText(
     windowX /= size;
     windowY /= size;
 
-    alignText(position, windowX, windowY, text[0], alignRight, alignTop);
+    alignText(&position, windowX, windowY, text[0], alignRight, alignTop);
 
     for (size_t i = alignRight ? textLength - 1 : 0; alignRight ? !ISINVALID(i) : i < textLength; alignRight ? i-- : i++) {
 	const Index3D order[] = {0, 1, 2, 0, 2, 3};
@@ -107,16 +106,18 @@ static void initText(
 	if (text[i] >= firstChar) {
 	    Glyph* const glyph = characters + text[i] - firstChar;
 
-	    vertices[i][0][0] = vertices[i][3][0] = (glyph->coords[RIGHT] / windowX) + position[0];
-	    vertices[i][1][0] = vertices[i][2][0] = (glyph->coords[LEFT] / windowX) + position[0];
+	    vertices[i][0].raw[0] = vertices[i][3].raw[0] = (glyph->coords[RIGHT] / windowX) + position.raw[0];
+	    vertices[i][1].raw[0] = vertices[i][2].raw[0] = (glyph->coords[LEFT] / windowX) + position.raw[0];
 
-	    vertices[i][0][1] = vertices[i][1][1] = (glyph->coords[TOP] / windowY) + position[1];
-	    vertices[i][2][1] = vertices[i][3][1] = (glyph->coords[BOTTOM] / windowY) + position[1];
+	    vertices[i][0].raw[1] = vertices[i][1].raw[1] = (glyph->coords[TOP] / windowY) + position.raw[1];
+	    vertices[i][2].raw[1] = vertices[i][3].raw[1] = (glyph->coords[BOTTOM] / windowY) + position.raw[1];
 
-	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(glyph->texCoords[j], vertices[i][j] + VERTEX2D_TEXCOORDS_OFFSET);
+	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(
+		glyph->texCoords[j].raw, vertices[i][j].raw + VERTEX2D_TEXCOORDS_OFFSET
+	    );
 	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
 
-	    position[0] += glyph->advance / windowX * (alignRight ? -1.f : 1);
+	    position.raw[0] += glyph->advance / windowX * (alignRight ? -1.f : 1);
 	}
     }
 
@@ -153,16 +154,16 @@ static void processGlyphValue(
 
 	switch (side) {
 	case LEFT:
-	    character->texCoords[1][0] = character->texCoords[2][0] = w;
+	    character->texCoords[1].raw[0] = character->texCoords[2].raw[0] = w;
 	    break;
 	case BOTTOM:
-	    character->texCoords[2][1] = character->texCoords[3][1] = h;
+	    character->texCoords[2].raw[1] = character->texCoords[3].raw[1] = h;
 	    break;
 	case RIGHT:
-	    character->texCoords[0][0] = character->texCoords[3][0] = w;
+	    character->texCoords[0].raw[0] = character->texCoords[3].raw[0] = w;
 	    break;
 	case TOP:
-	    character->texCoords[0][1] = character->texCoords[1][1] = h;
+	    character->texCoords[0].raw[1] = character->texCoords[1].raw[1] = h;
 	}
     }
     else character->coords[side] = value;
@@ -278,19 +279,19 @@ static void initAmmoText() {
 
     sprintf(string, format, ammoLeft, ammoMag);
 
-    initText(&meshAmmo, string, (vec2){1, 1}, fontSize, 1, true, true);
+    initText(&meshAmmo, string, (vec2s){{1, 1}}, fontSize, 1, true, true);
 }
 static void initHintText() {
     const float size = 100;
 
     initText(&meshHint, "Point and click with your mouse to move character. "
-	"Use the right mouse button and WASD keys to relocate the camera", (vec2){-1, 1}, size, 0, false, true);
+	"Use the right mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, false, true);
 }
 
 void GUI_Init() {
     initGlyphs();
 
-    R_NewFrame((vec2){1000, 1000});
+    R_NewFrame((vec2s){{1000, 1000}});
 
     GUI_UpdateTexts();
 }

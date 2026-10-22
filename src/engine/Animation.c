@@ -27,7 +27,7 @@ void Animation_Init(Animation* const animation, const cgltf_animation* const cgl
 
 	    cgltf_accessor_unpack_floats(channel->sampler->input, animation->setsTrans[boneId].timestamps, SIZE_MAX);
 	    cgltf_accessor_unpack_floats(
-		channel->sampler->output, animation->setsTrans[boneId].translationVectors[0], SIZE_MAX
+		channel->sampler->output, animation->setsTrans[boneId].translationVectors[0].raw, SIZE_MAX
 	    );
 
 	    animation->duration = fmaxf(animation->duration, animation->setsTrans[boneId].timestamps[numKeyframes - 1]);
@@ -40,7 +40,9 @@ void Animation_Init(Animation* const animation, const cgltf_animation* const cgl
 	    mallocarr(animation->setsRot[boneId].rotationVersors, numKeyframes);
 
 	    cgltf_accessor_unpack_floats(channel->sampler->input, animation->setsRot[boneId].timestamps, SIZE_MAX);
-	    cgltf_accessor_unpack_floats(channel->sampler->output, animation->setsRot[boneId].rotationVersors[0], SIZE_MAX);
+	    cgltf_accessor_unpack_floats(
+		channel->sampler->output, animation->setsRot[boneId].rotationVersors[0].raw, SIZE_MAX
+	    );
 
 	    animation->duration = fmaxf(animation->duration, animation->setsRot[boneId].timestamps[numKeyframes - 1]);
 
@@ -52,7 +54,7 @@ void Animation_Init(Animation* const animation, const cgltf_animation* const cgl
 	    mallocarr(animation->setsScale[boneId].scaleVectors, numKeyframes);
 
 	    cgltf_accessor_unpack_floats(channel->sampler->input, animation->setsScale[boneId].timestamps, SIZE_MAX);
-	    cgltf_accessor_unpack_floats(channel->sampler->output, animation->setsScale[boneId].scaleVectors[0], SIZE_MAX);
+	    cgltf_accessor_unpack_floats(channel->sampler->output, animation->setsScale[boneId].scaleVectors[0].raw, SIZE_MAX);
 
 	    break;
 	case cgltf_animation_path_type_weights:

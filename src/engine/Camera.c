@@ -1,6 +1,6 @@
-#include <cglm/affine.h> // IWYU pragma: keep
-#include <cglm/cam.h>
-#include <cglm/mat4.h>
+#include <cglm/struct/affine.h> // IWYU pragma: keep
+#include <cglm/struct/cam.h>
+#include <cglm/struct/mat4.h>
 #include "Camera.h"
 
 #define X(type, name, typeenum) static type name;
@@ -56,28 +56,18 @@ float Camera_GetYaw() {
 float Camera_GetZoomDistance() {
     return distance;
 }
-void Camera_GetPosition(vec3 dest) {
-    vec3 direction = {
+vec3s Camera_GetPosition() {
+    return glms_vec3_add(lookAtPosition, (vec3s){{
 	-cosf(yaw) * cosf(pitch) * distance,
 	-sinf(pitch) * distance,
 	-sinf(yaw) * cosf(pitch) * distance
-    };
-
-    glm_vec3_add(lookAtPosition, direction, dest);
+    }});
 }
-void Camera_GetPerspectiveCameraMatrix(mat4 perspectiveMat, mat4 dest) {
-    mat4 cameraMat = GLM_MAT4_IDENTITY_INIT;
-    vec3 position;
-
-    Camera_GetPosition(position);
-
-    glm_lookat(position, lookAtPosition, GLM_YUP, cameraMat);
-    //glm_look(positionInterp, (vec3){0, sinf(pitch), -cosf(pitch)}, (vec3){0, 0, -1}, cameraMat);
-
-    glm_mat4_mul(perspectiveMat, cameraMat, dest);
+mat4s Camera_GetPerspectiveCameraMatrix(const mat4s perspectiveMat) {
+    return glms_mat4_mul(perspectiveMat, glms_lookat(Camera_GetPosition(), lookAtPosition, GLMS_YUP));
 }
-void Camera_SetLookAtPosition(vec3 position) {
-    glm_vec3_copy(position, lookAtPosition);
+void Camera_SetLookAtPosition(const vec3s position) {
+    lookAtPosition = position;
 }
 void Camera_MouseWheel(const float scroll, const float x, const float y) {
 #ifdef FPS_TYPE_CAMERA

@@ -8,9 +8,9 @@
 
 void NH_Init();
 //Returns true if the path was found. If toTri is ESCAPE_FROM_POINT_MODE then 'to' argument is treated as danger point
-bool NH_FindPath(vec3 from, vec3 to, TriangleID fromTri, TriangleID toTri, vec3Array* dest);
-TriangleID NH_GetClosestTriangle(vec3 p);
-TriangleID NH_GetRandomPoint(vec3 dest);
+bool NH_FindPath(vec3s from, vec3s to, TriangleID fromTri, TriangleID toTri, vec3sArray* dest);
+TriangleID NH_GetClosestTriangle(vec3s p);
+TriangleID NH_GetRandomPoint(vec3s* dest);
 const Geometry* NH_GetGeometry();
 
 void NH_DrawDebugGui();

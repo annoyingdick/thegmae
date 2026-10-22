@@ -1,6 +1,7 @@
 #ifndef Render_h_
 #define Render_h_
 
+#include <cglm/types-struct.h>
 #include "WindowHandler.h"
 #include "Region.h"
 
@@ -62,13 +63,17 @@ typedef struct {
     bool isLastForThisMesh;
 } DeleteInstanceInfo;
 
+typedef struct {
+    vec3s position, direction;
+} Ray;
+
 void R_Init();
 MeshID R_NewMesh(PipID pipId);
 InstanceID R_NewInstance(PipID pipId, NewInstanceInfo info);
 //Returns size in bytes
 size_t R_GetVertexSizeByPipelineId(PipID pipId);
-void* R_GetPVmat();
-void R_NDCtoDirection(const NDC coords, float* dest);
+mat4s R_GetPVmat();
+vec3s R_NDCtoDirection(const NDC coords);
 void R_UploadIndices(Region* outRegion, RegionSize count, const Index3D indices[]);
 void R_UploadVertices(PipID pipId, UploadVerticesInfo info);
 void R_UploadStatic(PipID pipId, InstanceID id, size_t size, const void* data);
@@ -82,9 +87,8 @@ void R_FreeIndicesVertices(PipID pipId, const Region* indicesRegion, const Regio
 void R_ResizeTextureHandlesBuffer(RegionSize oldSize, RegionSize newSize);
 //Shall be called whenever the window gets resized
 void R_SetViewportSize(int width, int height);
-void R_NewMuzzleFlash(float position[3], float direction[3]);
-void R_NewText(float position[3], float direction[3]);
-void R_NewFrame(float size[2]);
+void R_NewMuzzleFlash(Ray ray);
+void R_NewFrame(vec2s size);
 void R_Loop_UpdatePVMat();
 void R_Loop(float interp);
 void R_FixedLoop();

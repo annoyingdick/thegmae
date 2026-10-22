@@ -1,7 +1,6 @@
 #ifndef ModelsHandler_h_
 #define ModelsHandler_h_
 
-#include <cglm/types.h>
 #include "Render.h"
 #include "Mesh.h"
 
@@ -19,7 +18,7 @@
 typedef struct {
     RegionSize numVertices, numIndices;
 
-    vec3* vertices;
+    vec3s* vertices;
     Index3D* indices;
 } ModelGeometry;
 

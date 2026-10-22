@@ -1,4 +1,5 @@
-#include <cglm/cam.h>
+#include <cglm/struct/cam.h>
+#include <cglm/struct/mat4.h>
 #include "def.h"
 #include "Uniform.h"
 #include "IPipStatic.h"
@@ -39,8 +40,8 @@ static NFixedPipFrame framesPip;
 static GLuint globalVao; //private
 static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInterpIndex;
 
-static mat4 pvMat;
-static mat4 perspectiveMat;
+static mat4s pvMat;
+static mat4s perspectiveMat;
 
 static IPipDynamic dynamics[NUM_DYNAMIC_PIPELINES];
 static IPipStatic statics[NUM_STATIC_PIPELINES];
@@ -197,7 +198,7 @@ static void initBuffers() {
 static void setPerspectiveMatrix(const float aspect) {
     const float nearZ = .1f, farZ = 1000;
 
-    glm_perspective(M_PI_2, aspect, nearZ, farZ, perspectiveMat); 
+    perspectiveMat = glms_perspective(M_PI_2, aspect, nearZ, farZ);
 }
 static void initPipelines() {
     for (PipID i = 0; i < NUM_DYNAMIC_PIPELINES; i++) {
@@ -255,20 +256,9 @@ static void initPipelines() {
     NFixedPipFrame_Init(&framesPip);
 }
 static void updateUniforms() {
-    mat4 mats[2];
+    mat4s mats[2] = {pvMat, Camera_GetPerspectiveCameraMatrix(glms_mat4_identity())};
 
-    mat4 inv;
-
-    glm_mat4_copy(pvMat, mats[0]);
-
-    Camera_GetPerspectiveCameraMatrix(GLM_MAT4_IDENTITY, mats[1]);
-
-    glm_mat4_inv(mats[1], inv);
-    glm_vec3_copy(inv[3], mats[1][3]);
-
-    //glm_mat4_print(mats[1], stdout);
-
-    //mats[1][2][2] = -mats[1][2][2];
+    glm_vec3_copy(glms_mat4_inv(mats[1]).raw[3], mats[1].raw[3]);
 
     GL_CHECK(GPUBuffer_SubData(uniformsBuffer, 0, sizeof(mats), mats));
 }
@@ -333,14 +323,11 @@ InstanceID R_NewInstance(const PipID pipId, const NewInstanceInfo info) {
 size_t R_GetVertexSizeByPipelineId(const PipID pipId) {
     return pipelinesVertexSizes[pipId];
 }
-void* R_GetPVmat() {
+mat4s R_GetPVmat() {
     return pvMat;
 }
-void R_NDCtoDirection(const NDC coords, float* const dest) {
-    mat4 inv;
-
-    glm_mat4_inv(R_GetPVmat(), inv);
-    glm_mat4_mulv3(inv, (vec3){coords[0], coords[1], 1}, 1, dest);
+vec3s R_NDCtoDirection(const NDC coords) {
+    return glms_mat4_mulv3(glms_mat4_inv(pvMat), (vec3s){{coords[0], coords[1], 1}}, 1);
 }
 void R_UploadIndices(Region* const outRegion, const RegionSize count, const Index3D indices[const]) {
     CHECKINIT("Tried to upload indices");
@@ -430,16 +417,16 @@ void R_SetViewportSize(const int width, const int height) {
 
     setPerspectiveMatrix((float)width / (float)height);
 
-    NFixedPipFrame_UpdateFrames(&framesPip, (vec2){(float)width, (float)height});
+    NFixedPipFrame_UpdateFrames(&framesPip, (vec2s){{(float)width, (float)height}});
 }
-void R_NewMuzzleFlash(vec3 position, vec3 direction) {
-    FixedPipMuzzle_NewMuzzle(&muzzlePip, position, direction);
+void R_NewMuzzleFlash(const Ray ray) {
+    FixedPipMuzzle_NewMuzzle(&muzzlePip, ray.position, ray.direction);
 }
-void R_NewFrame(vec2 size) {
+void R_NewFrame(const vec2s size) {
     NFixedPipFrame_NewFrame(&framesPip, size);
 }
 void R_Loop_UpdatePVMat() {
-    Camera_GetPerspectiveCameraMatrix(perspectiveMat, pvMat);
+    pvMat = Camera_GetPerspectiveCameraMatrix(perspectiveMat);
 }
 void R_Loop(const float interp) {
     writeNormalIndex = readNormalIndex;

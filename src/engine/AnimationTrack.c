@@ -10,7 +10,7 @@ void AnimationTrack_Init(AnimationTrack* const track, const Animation* const ani
 
     const KeyframeSetTranslation* const set = animation->setsTrans + 0;
 
-    const float z = set->translationVectors[0][2] - set->translationVectors[set->numKeyframes - 1][2];
+    const float z = set->translationVectors[0].raw[2] - set->translationVectors[set->numKeyframes - 1].raw[2];
 
     track->averageSpeedZ = z / set->timestamps[set->numKeyframes - 1];
 

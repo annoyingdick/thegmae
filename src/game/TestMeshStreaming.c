@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <cglm/vec3.h>
 #include <cglm/mat4.h>
 #include "engine/InstancesHandler.h"
 #include "engine/PhysicsSimulationHandler.h"

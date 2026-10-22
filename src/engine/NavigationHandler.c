@@ -1,5 +1,5 @@
 #include <khashl.h>
-#include <cglm/vec3.h>
+#include <cglm/struct/vec3.h>
 #include "HeapQueue.h"
 #include "DebugGuiHandler.h"
 #include "NavigationHandler.h"
@@ -18,12 +18,12 @@ typedef struct {
 
 typedef struct {
     Index3D id;
-    vec3 newPosition;
+    vec3s newPosition;
 } VertexTranslate;
 
 typedef struct {
     Edge points;
-    vec3 apex;
+    vec3s apex;
 } Funnel;
 
 typedef struct {
@@ -55,21 +55,13 @@ DECLARE_HEAPQUEUE_IMPL(TriangleID)
 static Geometry geometry;
 
 static TriangleNeighbours* neighbours; //private
-static vec3* centers;
+static vec3s* centers;
 
 //returns 0 if cdir is between dir0 and dir1
-static int isOutsideDirs(vec3 dir0, vec3 dir1, vec3 cdir) {
-    vec3 cross0, cross1;
+static int isOutsideDirs(const vec3s dir0, const vec3s dir1, const vec3s cdir) {
+    if (glms_vec3_dot(glms_vec3_cross(dir1, cdir), glms_vec3_cross(dir1, dir0)) < 0) return DIR1;
 
-    glm_vec3_cross(dir1, cdir, cross0);
-    glm_vec3_cross(dir1, dir0, cross1);
-
-    if (glm_vec3_dot(cross0, cross1) < 0) return DIR1;
-
-    glm_vec3_cross(dir0, cdir, cross0);
-    glm_vec3_cross(dir0, dir1, cross1);
-
-    return glm_vec3_dot(cross0, cross1) < 0 ? DIR0 : 0;
+    return glms_vec3_dot(glms_vec3_cross(dir0, cdir), glms_vec3_cross(dir0, dir1)) < 0 ? DIR0 : 0;
 }
 //returns an id of a neighbour triangle and if there is no one returns 0xffffffff
 static TriangleID processEdge(EdgeMap* const map, const TriangleID triangleId, uniEdge edge) {
@@ -91,8 +83,8 @@ static TriangleID processEdge(EdgeMap* const map, const TriangleID triangleId, u
 
     return neighbour;
 }
-static float dot2(vec3 v) {
-    return glm_vec3_dot(v, v);
+static float dot2(const vec3s v) {
+    return glms_vec3_dot(v, v);
 }
 static float keepNorm(const float a) {
     return fmaxf(fminf(a, 1), 0);
@@ -129,60 +121,56 @@ static void handleEdge(
 	kh_val(innerVertices, iter) = edge[0];
     }
 }
-static void lookDir(vec3 p0, vec3 p1, vec3 dest) {
-    glm_vec3_sub(p1, p0, dest);
-    glm_vec3_normalize(dest);
+static vec3s lookDir(const vec3s p0, const vec3s p1) {
+    return glms_vec3_normalize(glms_vec3_sub(p1, p0));
 }
-static void getFunnelDirs(Funnel* const funnel, vec3 dir0, vec3 dir1, const bool f) {
-    lookDir(funnel->apex, geometry.vertices[funnel->points[f]], dir0);
-    lookDir(funnel->apex, geometry.vertices[funnel->points[!f]], dir1);
+static void getFunnelDirs(Funnel* const funnel, vec3s* const dir0, vec3s* const dir1, const bool f) {
+    *dir0 = lookDir(funnel->apex, geometry.vertices[funnel->points[f]]);
+    *dir1 = lookDir(funnel->apex, geometry.vertices[funnel->points[!f]]);
 }
-static void pullString(vec3 point, Funnel* const funnel, vec3Array* const dest) {
-    vec3 dir0, dir1, cdir;
+static void pullString(const vec3s point, Funnel* const funnel, vec3sArray* const dest) {
+    vec3s dir0, dir1;
 
-    vec3* const f0 = geometry.vertices + funnel->points[0];
-    vec3* const f1 = geometry.vertices + funnel->points[1];
+    vec3s* const f0 = geometry.vertices + funnel->points[0];
+    vec3s* const f1 = geometry.vertices + funnel->points[1];
 
-    getFunnelDirs(funnel, dir0, dir1, 0);
+    getFunnelDirs(funnel, &dir0, &dir1, 0);
 
-    lookDir(funnel->apex, point, cdir);
+    const vec3s cdir = lookDir(funnel->apex, point);
 
-    if (glm_vec3_eqv(dir0, dir1)) {
-	if (glm_vec3_distance2(*f0, funnel->apex) < glm_vec3_distance2(*f1, funnel->apex)) {
-	    vec3Array_InsertElement(dest, f0, 0);
+    if (glms_vec3_eqv(dir0, dir1)) {
+	if (glms_vec3_distance2(*f0, funnel->apex) < glms_vec3_distance2(*f1, funnel->apex)) {
+	    vec3sArray_InsertElement(dest, f0, 0);
 	}
-	else vec3Array_InsertElement(dest, f1, 0);
+	else vec3sArray_InsertElement(dest, f1, 0);
     }
     else {
 	switch (isOutsideDirs(dir0, dir1, cdir)) {
 	case DIR0:
-	    vec3Array_InsertElement(dest, f0, 0);
+	    vec3sArray_InsertElement(dest, f0, 0);
 	    break;
 	case DIR1:
-	    vec3Array_InsertElement(dest, f1, 0);
+	    vec3sArray_InsertElement(dest, f1, 0);
 	}
     }
 }
 static Index3D narrowFunnel(
     const Edge portal, FunnelArray* const funnels,
-    const bool f, const bool p, vec3Array* const dest
+    const bool f, const bool p, vec3sArray* const dest
 ) {
-    vec3 dir0, dir1, newCross, oldCross;
-
     Funnel* const lastFunnel = FunnelArray_GetLastElement(funnels);
 
-    lookDir(lastFunnel->apex, geometry.vertices[portal[p]], dir0);
-    lookDir(lastFunnel->apex, geometry.vertices[portal[!p]], dir1);
+    vec3s dir0 = lookDir(lastFunnel->apex, geometry.vertices[portal[p]]),
+	  dir1 = lookDir(lastFunnel->apex, geometry.vertices[portal[!p]]);
+    const vec3s newCross = glms_vec3_cross(dir0, dir1);
 
-    glm_vec3_cross(dir0, dir1, newCross);
+    const float newDot = glms_vec3_dot(dir0, dir1);
 
-    const float newDot = glm_vec3_dot(dir0, dir1);
+    getFunnelDirs(lastFunnel, &dir0, &dir1, f);
 
-    getFunnelDirs(lastFunnel, dir0, dir1, f);
+    const vec3s oldCross = glms_vec3_cross(dir0, dir1);
 
-    glm_vec3_cross(dir0, dir1, oldCross);
-
-    if (glm_vec3_dot(oldCross, newCross) < 0) {
+    if (glms_vec3_dot(oldCross, newCross) < 0) {
 	for (ArrayIndex i = 0; i < funnels->numElements - 1; i++) {
 	    pullString(geometry.vertices[portal[p]], funnels->elements + i, dest);
 	}
@@ -192,23 +180,20 @@ static Index3D narrowFunnel(
 	//our funnel twisted
 	memcpy(funnels->elements[0].points, portal, sizeof(Edge));
 
-	glm_vec3_copy(geometry.vertices[index], funnels->elements[0].apex);
+	vec3sArray_InsertElement(dest, geometry.vertices + index, 0);
 
-	vec3Array_InsertElement(dest, geometry.vertices + index, 0);
-
+	funnels->elements[0].apex = geometry.vertices[index];
 	funnels->numElements = 1;
 
 	return index;
     }
 
-    if (newDot > glm_vec3_dot(dir0, dir1)) lastFunnel->points[f] = portal[p];
+    if (newDot > glms_vec3_dot(dir0, dir1)) lastFunnel->points[f] = portal[p];
     else {
-	Funnel funnel = {.points = {portal[p], portal[!p]}};
-
-	glm_vec3_copy(geometry.vertices[lastFunnel->points[f]], funnel.apex);
-
-	//SCARY, lastFunnel is a dangling pointer now
-	FunnelArray_AppendElement(funnels, &funnel);
+	//SCARY PART, lastFunnel is a dangling pointer now
+	FunnelArray_AppendElement(
+	    funnels, &(Funnel){.points = {portal[p], portal[!p]}, .apex = geometry.vertices[lastFunnel->points[f]]}
+	);
     }
 
     return MAXT(Index3D);
@@ -227,48 +212,43 @@ static void moveVertex(
     else if (!ISINVALID(kh_val(openVertices, ovIter))) {
 	const float shrinkDistance = .3f;
 
-	vec3 dir0, dir1, shift;
-
-	float* const apex = geometry.vertices[main];
+	const vec3s apex = geometry.vertices[main];
 
 	Funnel funnel;
+
+	vec3s dir0, dir1, shift;
 
 	funnel.points[0] = second;
 	funnel.points[1] = kh_val(openVertices, ovIter);
 
 	INVALIDATE(kh_val(openVertices, ovIter));
 
-	glm_vec3_copy(apex, funnel.apex);
+	funnel.apex = apex;
 
-	getFunnelDirs(&funnel, dir0, dir1, 0);
+	getFunnelDirs(&funnel, &dir0, &dir1, 0);
 
-	glm_vec3_center(dir0, dir1, shift);
+	shift = glms_vec3_center(dir0, dir1);
 
 	const float shiftDistance = hypotf(
-	    shrinkDistance, shrinkDistance / tanf(glm_vec3_angle(dir0, dir1) / 2)
+	    shrinkDistance, shrinkDistance / tanf(glms_vec3_angle(dir0, dir1) / 2)
 	);
 
 	//if this vertex is bound to only one triangle, we don't need to check our
 	//interpolated dir because of the fact that every triangle is a convex polygon
 	if ((ovIter = VertVertMap_get(innerVertices, main)) != kh_end(innerVertices)) {
-	    vec3 cdir;
-
-	    float* const inner = geometry.vertices[kh_val(innerVertices, ovIter)];
-
-	    glm_vec3_sub(inner, apex, cdir);
+	    const vec3s cdir = glms_vec3_sub(geometry.vertices[kh_val(innerVertices, ovIter)], apex);
 	    
-	    if (glm_vec3_eq(shift, 0)) {
+	    if (glms_vec3_eq(shift, 0)) {
 		//glm_vec3_normalize(cdir);
 
-		glm_vec3_cross(dir0, cdir, dir1);
-		glm_vec3_cross(dir1, dir0, shift);
+		//fucking terrible, i love it!
+		dir1 = glms_vec3_cross(dir0, cdir);
+		shift = glms_vec3_cross(dir1, dir0);
 	    }
-	    else if (isOutsideDirs(dir0, dir1, cdir)) glm_vec3_negate(shift);
+	    else if (isOutsideDirs(dir0, dir1, cdir)) shift = glms_vec3_negate(shift);
 	}
 
-	glm_vec3_scale_as(shift, shiftDistance, shift);
-	glm_vec3_add(apex, shift, translates[*numTranslates].newPosition);
-
+	translates[*numTranslates].newPosition = glms_vec3_add(apex, glms_vec3_scale_as(shift, shiftDistance));
 	translates[(*numTranslates)++].id = main;
     }
 }
@@ -295,15 +275,13 @@ static void shrinkGeometry(EdgeMap* const edges, VertVertMap* const innerVertice
 	moveVertex(openVertices, innerVertices, translates, &numTranslates, conv.edge[1], conv.edge[0]);
     }
 
-    foreach (VertexTranslate* const trans, translates, numTranslates)
-	glm_vec3_copy(trans->newPosition, geometry.vertices[trans->id]);
-    forend
+    foreach (VertexTranslate* const trans, translates, numTranslates) geometry.vertices[trans->id] = trans->newPosition; forend
 
     VertVertMap_destroy(openVertices);
 }
 static void reconstructPath(
     const CameFromMap* const cameFrom, const TriangleID fromTri,
-    TriangleID current, vec3 from, vec3 to, vec3Array* const dest
+    TriangleID current, const vec3s from, const vec3s to, vec3sArray* const dest
 ) {
     FunnelArray funnels;
 
@@ -315,8 +293,7 @@ static void reconstructPath(
 
     FunnelArray_Init(&funnels);
 
-    glm_vec3_copy(to, dest->elements[0]);
-    glm_vec3_copy(to, funnels.elements[0].apex);
+    dest->elements[0] = funnels.elements[0].apex = to;
 
     for (size_t i = 0;; i++) {
 	//pointer may be unaligned
@@ -355,14 +332,14 @@ static void reconstructPath(
 }
 static void processNeighbours(
     TriangleIDHeapQueue* const open, CameFromMap* const cameFrom, 
-    CostMap* const costs, const TriangleID current, vec3 to, const bool escapeMode
+    CostMap* const costs, const TriangleID current, const vec3s to, const bool escapeMode
 ) {
     const TriangleNeighbours* const nrs = neighbours + current;
 
     for (TriangleID i = 0; i < nrs->numNeighbours; i++) {
 	const TriangleID* const neighbour = nrs->triangles + i;
 
-	const float graphCost = glm_vec3_distance2(centers[current], centers[*neighbour]);
+	const float graphCost = glms_vec3_distance2(centers[current], centers[*neighbour]);
 
 	const float newCost = kh_val(costs, CostMap_get(costs, *neighbour)) + graphCost;
 
@@ -381,7 +358,7 @@ static void processNeighbours(
 		kh_val(cameFrom, iter).triId = current;
 		memcpy(kh_val(cameFrom, iter).edge, nrs->edges[i], sizeof(Edge));
 
-		const float prio = newCost + glm_vec3_distance2(to, centers[*neighbour]);
+		const float prio = newCost + glms_vec3_distance2(to, centers[*neighbour]);
 
 		TriangleIDHeapQueue_InsertElement(open, prio, neighbour);
 
@@ -405,9 +382,8 @@ void NH_Init() {
 	const Index3D i0 = geometry.triangles[i][0], i1 = geometry.triangles[i][1];
 	const Index3D i2 = geometry.triangles[i][2];
 
-	glm_vec3_add(geometry.vertices[i0], geometry.vertices[i1], centers[i]);
-	glm_vec3_add(centers[i], geometry.vertices[i2], centers[i]);
-	glm_vec3_divs(centers[i], 3, centers[i]);
+	centers[i] = glms_vec3_add(glms_vec3_add(geometry.vertices[i0], geometry.vertices[i1]), geometry.vertices[i2]);
+	centers[i] = glms_vec3_divs(centers[i], 3);
 
 	handleEdge(edges, innerVertices, i, (Edge){i0, i1});
 	handleEdge(edges, innerVertices, i, (Edge){i1, i2});
@@ -420,29 +396,31 @@ void NH_Init() {
     VertVertMap_destroy(innerVertices);
 }
 bool NH_FindPath(
-    vec3 from, vec3 to, const TriangleID fromTri, const TriangleID toTri, vec3Array* const dest
+    const vec3s from, const vec3s to, const TriangleID fromTri, const TriangleID toTri, vec3sArray* const dest
 ) {
     if (ISINVALID(fromTri)) return false;
     if (fromTri == toTri) {
 	dest->numElements = 1;
-
-	glm_vec3_copy(to, dest->elements[0]);
+	dest->elements[0] = to;
 
 	return true;
     }
 
     TriangleIDHeapQueue open;
+    vec3s farthest;
+
     int absent;
 
     CameFromMap* const cameFrom = CameFromMap_init();
     CostMap* const costs = CostMap_init();
 
-    vec3 farthest = {to[0], to[1], to[2]};
     TriangleID farthestTri;
 
     INVALIDATE(farthestTri);
 
     //printfd("Searching for a path from: %u, to: %u\n", fromTri, toTri);
+
+    farthest = to;
 
     TriangleIDHeapQueue_Init(&open);
     TriangleIDHeapQueue_InsertElement(&open, 0, &fromTri);
@@ -459,11 +437,10 @@ bool NH_FindPath(
 
 	TriangleIDHeapQueue_PopElement(&open, &current);
 
-	if (toTri == ESCAPE_FROM_DANGER_MODE && glm_vec3_distance2(centers[current], to) < 4) continue;
+	if (toTri == ESCAPE_FROM_DANGER_MODE && glms_vec3_distance2(centers[current], to) < 4) continue;
 
-	if (glm_vec3_distance2(centers[current], to) > glm_vec3_distance2(farthest, to)) {
-	    glm_vec3_copy(centers[current], farthest);
-
+	if (glms_vec3_distance2(centers[current], to) > glms_vec3_distance2(farthest, to)) {
+	    farthest = centers[current];
 	    farthestTri = current;
 	}
 
@@ -486,7 +463,7 @@ bool NH_FindPath(
 
     return dest->numElements;
 }
-TriangleID NH_GetClosestTriangle(vec3 p) {
+TriangleID NH_GetClosestTriangle(const vec3s p) {
     float minDistance;
     TriangleID triangleId;
 
@@ -495,41 +472,37 @@ TriangleID NH_GetClosestTriangle(vec3 p) {
     INVALIDATE(triangleId);
 
     for (TriangleID i = 0; i < geometry.numTriangles; i++) {
-	float* const v1 = Geometry_GetVertex(&geometry, i, 0);
-	float* const v2 = Geometry_GetVertex(&geometry, i, 1);
-	float* const v3 = Geometry_GetVertex(&geometry, i, 2);
+	const vec3s v1 = Geometry_GetVertex(&geometry, i, 0), v2 = Geometry_GetVertex(&geometry, i, 1),
+		    v3 = Geometry_GetVertex(&geometry, i, 2);
 
 	//source: iquilezles.org/articles/triangledistance
 
-	vec3 v21, v32, v13, p1, p2, p3, nor, n21, n32, n13;
+	vec3s v21, v32, v13, p1, p2, p3, nor, n21, n32, n13;
 
-	glm_vec3_sub(v2, v1, v21);
-	glm_vec3_sub(v3, v2, v32);
-	glm_vec3_sub(v1, v3, v13);
-	glm_vec3_sub(p, v1, p1);
-	glm_vec3_sub(p, v2, p2);
-	glm_vec3_sub(p, v3, p3);
-	glm_vec3_cross(v21, v13, nor);
+	v21 = glms_vec3_sub(v2, v1);
+	v32 = glms_vec3_sub(v3, v2);
+	v13 = glms_vec3_sub(v1, v3);
+	p1 = glms_vec3_sub(p, v1);
+	p2 = glms_vec3_sub(p, v2);
+	p3 = glms_vec3_sub(p, v3);
+	nor = glms_vec3_cross(v21, v13);
 	
-	glm_vec3_cross(v21, nor, n21);
-	glm_vec3_cross(v32, nor, n32);
-	glm_vec3_cross(v13, nor, n13);
+	n21 = glms_vec3_cross(v21, nor);
+	n32 = glms_vec3_cross(v32, nor);
+	n13 = glms_vec3_cross(v13, nor);
 
-	glm_vec3_scale(v21, keepNorm(glm_vec3_dot(v21, p1) / dot2(v21)), v21);
-	glm_vec3_sub(v21, p1, v21);
-	glm_vec3_scale(v32, keepNorm(glm_vec3_dot(v32, p2) / dot2(v32)), v32);
-	glm_vec3_sub(v32, p2, v32);
-	glm_vec3_scale(v13, keepNorm(glm_vec3_dot(v13, p3) / dot2(v13)), v13);
-	glm_vec3_sub(v13, p3, v13);
+	v21 = glms_vec3_sub(glms_vec3_scale(v21, keepNorm(glms_vec3_dot(v21, p1) / dot2(v21))), p1);
+	v32 = glms_vec3_sub(glms_vec3_scale(v32, keepNorm(glms_vec3_dot(v32, p2) / dot2(v32))), p2);
+	v13 = glms_vec3_sub(glms_vec3_scale(v13, keepNorm(glms_vec3_dot(v13, p3) / dot2(v13))), p3);
 
 	const float distance = sqrtf( // inside/outside test    
 	    (
-	    glm_signf(glm_vec3_dot(n21,p1)) + 
-	    glm_signf(glm_vec3_dot(n32,p2)) + 
-	    glm_signf(glm_vec3_dot(n13,p3)) < 2
+	    glm_signf(glms_vec3_dot(n21,p1)) + 
+	    glm_signf(glms_vec3_dot(n32,p2)) + 
+	    glm_signf(glms_vec3_dot(n13,p3)) < 2
 	    ) ? // 3 edges    
 	    fminf(fminf(dot2(v21), dot2(v32)), dot2(v13)) : // 1 face    
-	    glm_vec3_dot(nor,p1) * glm_vec3_dot(nor,p1) / dot2(nor)
+	    glms_vec3_dot(nor,p1) * glms_vec3_dot(nor,p1) / dot2(nor)
 	);
 
 	if (distance < minDistance) {
@@ -540,17 +513,16 @@ TriangleID NH_GetClosestTriangle(vec3 p) {
 
     return triangleId;
 }
-TriangleID NH_GetRandomPoint(vec3 dest) {
+TriangleID NH_GetRandomPoint(vec3s* const dest) {
     //limited by RAND_MAX
     float r0, r1;
 
-    vec3 dir0, dir1;
+    vec3s dir0, dir1;
 
     const TriangleID triId = rand() % geometry.numTriangles;
 
-    float* const p0 = geometry.vertices[geometry.triangles[triId][0]];
-    float* const p1 = geometry.vertices[geometry.triangles[triId][1]];
-    float* const p2 = geometry.vertices[geometry.triangles[triId][2]];
+    const vec3s p0 = geometry.vertices[geometry.triangles[triId][0]], p1 = geometry.vertices[geometry.triangles[triId][1]],
+		p2 = geometry.vertices[geometry.triangles[triId][2]];
 
     r0 = (float)rand() / RAND_MAX;
     r1 = (float)rand() / RAND_MAX;
@@ -560,14 +532,10 @@ TriangleID NH_GetRandomPoint(vec3 dest) {
 	r1 = 1 - r1;
     }
 
-    glm_vec3_sub(p1, p0, dir0);
-    glm_vec3_sub(p2, p0, dir1);
+    dir0 = glms_vec3_scale(glms_vec3_sub(p1, p0), r0);
+    dir1 = glms_vec3_scale(glms_vec3_sub(p2, p0), r1);
 
-    glm_vec3_scale(dir0, r0, dir0);
-    glm_vec3_scale(dir1, r1, dir1);
-
-    glm_vec3_add(p0, dir0, dest);
-    glm_vec3_add(dest, dir1, dest);
+    *dest = glms_vec3_add(glms_vec3_add(p0, dir0), dir1);
 
     return triId;
 }

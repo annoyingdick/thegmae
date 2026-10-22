@@ -1,4 +1,4 @@
-#include <cglm/box.h>
+#include <cglm/struct/box.h>
 #include "def.h" // IWYU pragma: keep
 #include "TexturesHandler.h"
 #include "DebugGuiHandler.h"
@@ -22,7 +22,7 @@ static void initMesh(Mesh* const mesh, const PipID pipId) {
     //important, very important
     mesh->indicesRegion.size = 1;
 
-    glm_aabb_invalidate(mesh->bounding);
+    glms_aabb_invalidate(mesh->bounding);
 }
 static void loadMesh(Mesh* const mesh) {
     //mesh->numAnimations = GLTF_LoadRig(gltf, &mesh->rootBone, &mesh->animations, &mesh->numBones);

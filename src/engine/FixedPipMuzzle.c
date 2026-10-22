@@ -28,7 +28,7 @@ void FixedPipMuzzle_Init(
     //THE FACE TEXTURE MUST BE INITIALIZED RIGHT AFTER THE NORMAL ONE
     TexturesHandler_BeginLoadingTask(faceTexturePath, faceTexturePath);
 }
-void FixedPipMuzzle_NewMuzzle(FixedPipMuzzle* const pip, vec3 position, vec3 direction) {
+void FixedPipMuzzle_NewMuzzle(FixedPipMuzzle* const pip, const vec3s position, const vec3s direction) {
     const float data[] = {VEC3DUP(position), VEC3DUP(direction), pip->time, pip->texture};
 
     RegionSize newSize;

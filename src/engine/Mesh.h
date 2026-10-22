@@ -25,7 +25,7 @@ X(PipID, pipId) \
 X(AnimationID, numAnimations) \
 X(BoneID, numBones)
 
-typedef vec3 AABB[2];
+typedef vec3s AABB[2];
 
 typedef struct Mesh Mesh;
 
@@ -37,7 +37,7 @@ VARS_MESH
 #undef X
 
     AABB bounding;
-    vec3 highestPoint;
+    vec3s highestPoint;
 
     Animation* animations;
     TextureID* usedTextures;

@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include <cglm/vec2.h>
-#include <cglm/vec3.h>
-#include <cglm/mat4.h>
-#include <cglm/quat.h>
+#include <cglm/struct/vec2.h>
+#include <cglm/struct/vec3.h>
+#include <cglm/struct/mat4.h>
+#include <cglm/struct/quat.h>
 #include "WindowHandler.h"
 #include "NavigationHandler.h"
 #include "CharactersHandler.h"
@@ -59,18 +59,18 @@ const AnimationID moveAnimations[] = {
 };
 
 static bool isStopped(const Character* const character) {
-    return vec3Array_IsEmpty(&character->path);
+    return vec3sArray_IsEmpty(&character->path);
 }
 static bool isPathLongerThan(Character* const character, const float length) {
     float finalLength;
 
-    float* lastWaypoint;
+    vec3s lastWaypoint;
 
     finalLength = 0;
     lastWaypoint = character->position;
 
-    aforeach (vec3* const waypoint, &character->path)
-	finalLength += glm_vec3_distance(lastWaypoint, *waypoint);
+    aforeach (vec3s* const waypoint, &character->path)
+	finalLength += glms_vec3_distance(lastWaypoint, *waypoint);
 
 	if (finalLength > length) return true;
 
@@ -97,16 +97,15 @@ static bool shouldShoot(Character* const character) {
 
     const float factor = 5, minDot = .9f;
 
-    vec2 toTarget;
+    vec2s toTarget;
 
     if (character->target) {
-	glm_vec2_sub(VEC3XZ2(character->target->position), VEC3XZ2(character->position), toTarget);
-	glm_vec2_normalize(toTarget);
+	toTarget = glms_vec2_normalize(glms_vec2_sub(VEC3XZ2(character->target->position), VEC3XZ2(character->position)));
     }
-    else glm_vec2_copy(character->direction, toTarget);
+    else toTarget = character->direction;
 
     return shootTrack->time > shootTrack->animation->duration / factor && !shootTrack->weight
-    && glm_vec2_dot(character->direction, toTarget) > minDot;
+    && glms_vec2_dot(character->direction, toTarget) > minDot;
 }
 static bool isTired(const Character* const character) {
     const float threshold = .5f;
@@ -132,82 +131,72 @@ static KeyframeID getCorrespondingKeyframeIndex(
 static float getAlpha(const float time, const float timestamps[const]) {
     return (time - timestamps[0]) / (timestamps[1] - timestamps[0]);
 }
-static void animateRotation(
-    const KeyframeSetRotation* const setRot, const float time, versor dest
-) {
+static versors animateRotation(const KeyframeSetRotation* const setRot, const float time) {
     const KeyframeID id = getCorrespondingKeyframeIndex(
 	time, setRot->numKeyframes, setRot->timestamps
     );
 
-    if (id) {
-	glm_quat_slerp(
-	    setRot->rotationVersors[id - 1], setRot->rotationVersors[id],
-	    getAlpha(time, setRot->timestamps + id - 1), dest
-	);
-    }
-    else glm_quat_copy(setRot->rotationVersors[id], dest);
+    if (id) return glms_quat_slerp(
+	setRot->rotationVersors[id - 1], setRot->rotationVersors[id], getAlpha(time, setRot->timestamps + id - 1)
+    );
+
+    return setRot->rotationVersors[id];
 }
-static void animateTranslation(
-    const KeyframeSetTranslation* const setTrans, const float time, vec3 dest
-) {
+static vec3s animateTranslation(const KeyframeSetTranslation* const setTrans, const float time) {
     const KeyframeID id = getCorrespondingKeyframeIndex(
 	time, setTrans->numKeyframes, setTrans->timestamps
     );
 
-    if (id) glm_vec3_lerp(
+    if (id) return glms_vec3_lerp(
 	setTrans->translationVectors[id - 1], setTrans->translationVectors[id], 
-	getAlpha(time, setTrans->timestamps + id - 1), dest
+	getAlpha(time, setTrans->timestamps + id - 1)
     );
-    else glm_vec3_copy(setTrans->translationVectors[id], dest);
+
+    return setTrans->translationVectors[id];
 }
 static void processTrack(
     const AnimationTrack* const track, const Bone* const bone, float* const totalWeight,
-    const AnimationID animId, vec3 finalTrans, versor finalRot
+    const AnimationID animId, vec3s* const finalTrans, versors* const finalRot
 ) {
-    vec3 trans;
-    versor rot;
+    vec3s trans;
 
     const float weight = fminf(track->weight, 1 - *totalWeight);
 
     const KeyframeSetTranslation* const setTrans = track->animation->setsTrans + bone->id;
     const KeyframeSetRotation* const setRot = track->animation->setsRot + bone->id;
 
-    animateTranslation(setTrans, track->time, trans);
-    animateRotation(setRot, track->time, rot);
+    trans = glms_vec3_scale(animateTranslation(setTrans, track->time), weight);
 
     //root motion : discard any z coord changes
     if (animId != NOTHING_ANIMATION_DEATH_FROMFRONT && animId != NOTHING_ANIMATION_DEATH_FROMBACK && !bone->id) {
-	trans[2] = 0;
+	trans.raw[2] = 0;
     }
 
-    glm_vec3_scale(trans, weight, trans);
-    glm_vec3_add(finalTrans, trans, finalTrans);
+    *finalTrans = glms_vec3_add(*finalTrans, trans);
+    *finalRot = glms_quat_slerp(*finalRot, animateRotation(setRot, track->time), *totalWeight ? weight : 1);
 
-    glm_quat_slerp(finalRot, rot, *totalWeight ? weight : 1, finalRot);
     //glm_quat_mul(finalRot, rot, finalRot);
 
     *totalWeight += track->weight;
 }
-static void multiplyAnimation(const AnimationTrack* const track, const BoneID boneId, mat4 transform) {
-    mat4 mat;
-    versor mulRot;
-    vec3 mulTrans;
+static void multiplyAnimation(const AnimationTrack* const track, const BoneID boneId, mat4s* const transform) {
+    glm_vec3_add(
+	transform->raw[3], animateTranslation(track->animation->setsTrans + boneId, track->time).raw, transform->raw[3]
+    );
 
-    animateRotation(track->animation->setsRot + boneId, track->time, mulRot);
-    animateTranslation(track->animation->setsTrans + boneId, track->time, mulTrans);
-
-    glm_vec3_add(transform[3], mulTrans, transform[3]);
-
-    glm_quat_mat4(mulRot, mat);
-    glm_mat4_mul(transform, mat, transform);
+    *transform = glms_mat4_mul(
+	*transform, glms_quat_mat4(animateRotation(track->animation->setsRot + boneId, track->time))
+    );
 }
-static void handleBone(Character* const character, Bone* const bone, mat4 parentTransform, bool isTop) {
-    mat4 transform;
-    vec3 finalTrans = GLM_VEC3_ZERO_INIT;
-    versor finalRot = GLM_QUAT_IDENTITY_INIT;
+static void handleBone(Character* const character, Bone* const bone, const mat4s parentTransform, bool isTop) {
+    mat4s transform;
+    vec3s finalTrans;
+    versors finalRot;
 
     float totalWeight;
 
+    finalTrans = glms_vec3_zero();
+    finalRot = glms_quat_identity();
     totalWeight = 0;
 
     isTop = strcmp(bone->name, "mixamorig:Spine2") ? isTop : true;
@@ -222,38 +211,40 @@ static void handleBone(Character* const character, Bone* const bone, mat4 parent
 	const AnimationID animId = (isTop ? topAnimationsOrder : bottomAnimationsOrder)[i];
 
 	if (animId < NUM_NOTHING_ANIMATIONS) {
-	    processTrack(character->tracks + animId, bone, &totalWeight, animId, finalTrans, finalRot);
+	    processTrack(character->tracks + animId, bone, &totalWeight, animId, &finalTrans, &finalRot);
 	}
 	else {
 	    for (SlotID slot = 0; slot < SLOT_MAX_ENUM - 1 && totalWeight < 1; slot++) processTrack(
-		character->wtracks[slot] + animId - NUM_NOTHING_ANIMATIONS, bone, &totalWeight, animId, finalTrans, finalRot
+		character->wtracks[slot] + animId - NUM_NOTHING_ANIMATIONS, bone, &totalWeight, animId, &finalTrans, &finalRot
 	    );
 	}
     }
     //BENCHMARK_END
 
-    glm_quat_mat4(finalRot, transform);
-    glm_vec3_copy(finalTrans, transform[3]);
+    transform = glms_quat_mat4(finalRot);
+
+    glm_vec3_copy(finalTrans.raw, transform.raw[3]);
 
     if (character->currentSlot && !AnimationTrack_IsFinished(Character_GetWeaponTracks(character, WEAPON_ANIMATION_SHOOT))) {
-	multiplyAnimation(character->tracks + WEAPON_ANIMATION_SHOOT, bone->id, transform);
+	multiplyAnimation(character->tracks + WEAPON_ANIMATION_SHOOT, bone->id, &transform);
     }
 
-    vec4* const instDest = IH_GetUploadPtr(character->instance) + (bone->id * sizeof(mat4));
+    mat4s* const instDest = IH_GetUploadPtr(character->instance) + (bone->id * sizeof(mat4));
 
-    glm_mat4_mul(parentTransform, transform, transform);
+    transform = glms_mat4_mul(parentTransform, transform);
 
     if (!strcmp(bone->name, "mixamorig:RightHand")) {
 	if (character->currentSlot) {
-	    glm_mat4_copy(transform, IH_GetUploadPtr(character->weaponInstance));
-	    glm_mat4_mulv3(transform, character->localMuzzlePosition, 1, character->muzzlePosition);
+	    *(mat4s*)IH_GetUploadPtr(character->weaponInstance) = transform;
+
+	    character->muzzlePosition = glms_mat4_mulv3(transform, *character->localMuzzlePosition, 1);
 
 	    //glm_vec3_add(transform[3], VEC2XZ(character->direction, 1 / 3), character->muzzlePosition);
 	}
 	else glm_mat4_zero(IH_GetUploadPtr(character->weaponInstance));
     }
 
-    glm_mat4_mul(transform, bone->off, instDest);
+    *instDest = glms_mat4_mul(transform, bone->off);
 
     foreach (Bone* const child, bone->children, bone->numChildren)
 	handleBone(character, child, transform, isTop);
@@ -274,16 +265,16 @@ static float calculateSpeed(Character* const character) {
 	const float weight = fminf(track->weight, 1 - totalWeight);
 
 	const float transZ = glm_lerp(
-	    set->translationVectors[id - 1][2], set->translationVectors[id][2], 
+	    set->translationVectors[id - 1].raw[2], set->translationVectors[id].raw[2], 
 	    getAlpha(track->time, set->timestamps + id - 1)
 	);
 
 	float speed = track->lastTransZ - transZ;
 
 	if (speed < 0) {
-	    const float lastZ = set->translationVectors[set->numKeyframes - 1][2];
+	    const float lastZ = set->translationVectors[set->numKeyframes - 1].raw[2];
 
-	    speed += set->translationVectors[0][2] - lastZ;
+	    speed += set->translationVectors[0].raw[2] - lastZ;
 	}
 
 	finalSpeed += fmaxf(speed * weight, 0);
@@ -295,7 +286,7 @@ static float calculateSpeed(Character* const character) {
 
     return finalSpeed;
 }
-static float getWishDirection(Character* const character, vec3 move, vec3 dest) {
+static float getWishDirection(Character* const character, const vec3s move, vec3s* const dest) {
     const float normalSpeed = 5;
 
     if (character->target && (isStopped(character) || character->state != CHARACTER_STATE_SPRINT)) {
@@ -303,69 +294,57 @@ static float getWishDirection(Character* const character, vec3 move, vec3 dest) 
 
 	//if (AnimationTrack_IsFinished(character->tracks + WEAPON_ANIMATION_SHOOT)) character->going2 = 0;
 
-	glm_vec3_sub(character->target->position, character->position, dest);
-	glm_vec3_normalize(dest);
+	*dest = glms_vec3_normalize(glms_vec3_sub(character->target->position, character->position));
 
 	return aimingSpeed;
     }
 
     if (isStopped(character)) {
-	dest[0] = character->direction[0];
-	dest[1] = 0;
-	dest[2] = character->direction[1];
-    }
-    else if (character->state != CHARACTER_STATE_AIM || character->path.numElements == 1 || glm_vec3_norm2(move) > 1) {
-	glm_vec3_copy(move, dest);
-    }
-    else glm_vec3_sub(character->path.elements[1], character->position, dest);
+	*dest = VEC2XZ(character->direction, 1);
 
-    glm_vec3_normalize(dest);
+	return normalSpeed;
+    }
+
+    if (character->state != CHARACTER_STATE_AIM || character->path.numElements == 1 || glms_vec3_norm2(move) > 1) {
+	*dest = move;
+    }
+    else *dest = glms_vec3_sub(character->path.elements[1], character->position);
+
+    *dest = glms_vec3_normalize(*dest);
 
     return normalSpeed;
 }
-static void slerp(vec2 start, vec2 end, const float t, vec2 dest) {
-    const float dot = fminf(fmaxf(glm_vec2_dot(start, end), -1), 1);
+static vec2s slerp(const vec2s start, const vec2s end, const float t) {
+    vec2s diff;
 
-    vec2 scaledStart, diff;
+    const float dot = fminf(fmaxf(glms_vec2_dot(start, end), -1), 1), theta = acosf(dot) * t;
 
-    glm_vec2_scale(start, dot, diff);
-    glm_vec2_sub(end, diff, diff);
-    glm_vec2_normalize(diff);
+    diff = glms_vec2_scale_as(glms_vec2_sub(end, glms_vec2_scale(start, dot)), sinf(theta));
 
-    const float theta = acosf(dot) * t;
-
-    glm_vec2_scale(start, cosf(theta), scaledStart);
-    glm_vec2_scale(diff, sinf(theta), diff);
-    glm_vec2_add(start, diff, dest);
-    glm_vec2_normalize(dest);
+    return glms_vec2_normalize(glms_vec2_add(start, diff));
 }
-static void turnCharacter(Character* const character, vec3 move) {
-    vec3 wishDirection;
+static void turnCharacter(Character* const character, const vec3s move) {
+    vec3s wishDirection;
 
-    const float rotationSpeed = getWishDirection(character, move, wishDirection);
+    const float rotationSpeed = getWishDirection(character, move, &wishDirection);
 
-    slerp(
-	character->direction, (vec2){wishDirection[0], wishDirection[2]}, 
-	rotationSpeed * WH_GetDeltaTime(), character->direction
-    );
+    character->direction = slerp(character->direction, VEC3XZ2(wishDirection), rotationSpeed * WH_GetDeltaTime());
 }
 static float processMove(Character* const character) {
-    vec3 move;
-
-    glm_vec3_sub(character->path.elements[0], character->position, move);
+    const vec3s move = glms_vec3_sub(character->path.elements[0], character->position);
 
     turnCharacter(character, move);
 
     if (!isStopped(character)) {
 	const float speed = calculateSpeed(character);
 
-	if (glm_vec3_norm2(move) <= speed * speed) {
+	if (glms_vec3_norm2(move) <= speed * speed) {
 	    //glm_vec3_copy(character->path.elements[0], character->position);
 
-	    vec3Array_RemoveElement(&character->path, 0);
+	    vec3sArray_RemoveElement(&character->path, 0);
 	}
-	glm_vec3_scale_as(move, speed, move);
-	glm_vec3_add(character->position, move, character->position);
+
+	character->position = glms_vec3_add(character->position, glms_vec3_scale_as(move, speed));
 
 	return speed;
     }
@@ -415,7 +394,6 @@ static void workerThrd(Character* const character) {
     character->aimTaskLock = false;
 }
 static void fadeAnimations(Character* const character) {
-
     AnimationTrack_FadeIn(
 	character->tracks + NOTHING_ANIMATION_WALK,
 	character->state == CHARACTER_STATE_NORMAL && (!character->wishSlot) &&
@@ -464,28 +442,28 @@ static void addFatigue(Character* const character) {
     );
 }
 static void animate(Character* const character) {
-    mat4 characterMat = GLM_MAT4_IDENTITY_INIT;
+    mat4s characterMat = glms_mat4_identity();
 
-    characterMat[0][0] = -character->direction[1];
-    characterMat[0][2] = character->direction[0];
+    characterMat.raw[0][0] = -character->direction.raw[1];
+    characterMat.raw[0][2] = character->direction.raw[0];
 
-    characterMat[2][0] = -character->direction[0];
-    characterMat[2][2] = -character->direction[1];
+    characterMat.raw[2][0] = -character->direction.raw[0];
+    characterMat.raw[2][2] = -character->direction.raw[1];
 
-    glm_vec3_copy(character->position, characterMat[3]);
+    glm_vec3_copy(character->position.raw, characterMat.raw[3]);
 
     handleBone(character, CH_GetMesh()->bones, characterMat, false);
 }
 
 void Character_Init(Character* const character, Mesh* const weaponMesh) {
-    vec3Array_Init(&character->path);
+    vec3sArray_Init(&character->path);
 
     CH_AddCharacter(character);
 
     character->instance = IH_NewInstance(CH_GetMesh());
     character->weaponInstance = IH_NewInstance(weaponMesh);
 
-    character->direction[1] = -1;
+    character->direction.raw[1] = -1;
 
     character->tracks[NOTHING_ANIMATION_IDLE].weight = 1;
 
@@ -495,14 +473,10 @@ void Character_Init(Character* const character, Mesh* const weaponMesh) {
 
     character->areAnimationsLoaded = false;
 
-    character->localMuzzlePosition = weaponMesh->highestPoint;
+    character->localMuzzlePosition = &weaponMesh->highestPoint;
 }
 bool Character_CanSeeDotCheck(Character* const character, Character* const them) {
-    vec3 dir;
-
-    glm_vec3_sub(them->position, character->position, dir);
-
-    return glm_vec3_dot(VEC2XZ(character->direction, 1), dir) > 0;
+    return glms_vec3_dot(VEC2XZ(character->direction, 1), glms_vec3_sub(them->position, character->position)) > 0;
 }
 bool Character_ShouldProcessShot(Character* character) {
     return CH_GetMesh()->animations && character->state != CHARACTER_STATE_DEAD
@@ -539,12 +513,9 @@ void Character_SwitchAim(Character* const character, const bool aim) {
 	if (character->state != CHARACTER_STATE_DEAD) character->state = aim ? CHARACTER_STATE_AIM : CHARACTER_STATE_NORMAL;
     }
 }
-void Character_GoTo(Character* const character, vec3 goal, const TriangleID goalTri) {
+void Character_GoTo(Character* const character, const vec3s goal, const TriangleID goalTri) {
     if (character->state != CHARACTER_STATE_DEAD) {
-	NH_FindPath(
-	    character->position, goal, NH_GetClosestTriangle(character->position), 
-	    goalTri, &character->path
-	);
+	NH_FindPath(character->position, goal, NH_GetClosestTriangle(character->position), goalTri, &character->path);
     }
 }
 void Character_TryInitAnimations(Character* const character) {
@@ -640,7 +611,7 @@ void Character_Loop(Character* const character) {
 	    }
 
 	    if (Character_ShouldProcessShot(character)) {
-		R_NewMuzzleFlash(character->muzzlePosition, VEC2XZ(character->direction, 1));
+		R_NewMuzzleFlash((Ray){.position = character->muzzlePosition, .direction = VEC2XZ(character->direction, 1)});
 
 		character->ammoMag--;
 
@@ -681,8 +652,8 @@ DGH_BEGIN(Character, character, 18) {
     VARS_CHARACTER
 #undef X
 
-    DGH_Vec3(character->position, "position:");
-    DGH_Vec2(character->direction, "direction:");
+    DGH_Vec3(character->position.raw, "position:");
+    DGH_Vec2(character->direction.raw, "direction:");
 
     DGH_PTR(character->target);
     DGH_ARRAYN(character->tracks);

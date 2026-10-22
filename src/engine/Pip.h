@@ -1,7 +1,6 @@
 #ifndef Pip_h_
 #define Pip_h_
 
-#include <cglm/types.h>
 #include "Arena.h"
 #include "ShaderProgram.h"
 #include "GPUBuffer.h"
@@ -27,11 +26,9 @@ X(BUFFER_BINDING_TERRAIN_VERTICES)
 #define GL_CHECK(x) x
 #endif
 
-#define VEC2XZ(x, a) (vec3){x[0] * a, 0, x[1] * a}
-#define VEC3XZ2(x) (vec2){x[0], x[2]}
-#define VEC3DUP(x) x[0], x[1], x[2]
-#define VEC4DUP(x) x[0], x[1], x[2], x[3]
-#define MAT4DUP(x) VEC4DUP(x[0]), VEC4DUP(x[1]), VEC4DUP(x[2]), VEC4DUP(x[3])
+#define VEC3DUP(x) x.raw[0], x.raw[1], x.raw[2]
+#define VEC2XZ(x, a) (vec3s){{x.raw[0] * a, 0, x.raw[1] * a}}
+#define VEC3XZ2(x) (vec2s){{x.raw[0], x.raw[2]}}
 
 //Base pipeline struct. Useless on its own, because it doesn't upload any draw commands into the gpu.
 typedef struct {

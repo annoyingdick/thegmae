@@ -13,12 +13,12 @@ typedef struct {
 
     float* timestamps;
     RegionPosition* indices;
-    vec2* sizes;
+    vec2s* sizes;
 } NFixedPipFrame;
 
 void NFixedPipFrame_Init(NFixedPipFrame* pip);
-void NFixedPipFrame_NewFrame(NFixedPipFrame* pip, vec2 size);
-void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, vec2 windowSize);
+void NFixedPipFrame_NewFrame(NFixedPipFrame* pip, vec2s size);
+void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, vec2s windowSize);
 void NFixedPipFrame_Run(NFixedPipFrame* pip);
 
 #endif

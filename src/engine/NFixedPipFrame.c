@@ -1,5 +1,4 @@
-#include <math.h>
-#include <cglm/vec2.h>
+#include <cglm/struct/vec2.h>
 #include "TexturesHandler.h"
 #include "Pip.h"
 #include "NFixedPipFrame.h"
@@ -10,9 +9,9 @@
 #define MESH_DATA_SIZE sizeof(float)
 
 //i don't know why it works and i'm too afraid to ask
-#define FILLED_CORNER {1, 0}
-#define FREE_CORNER {0, 0}
-#define RIGHT_CORNER {0, 1}
+#define FILLED_CORNER 1, 0
+#define FREE_CORNER 0, 0
+#define RIGHT_CORNER 0, 1
 #define LEFT_CORNER FILLED_CORNER
 
 //oh yeah, an unmaintainable brick straight out of ass that holds together the entire program
@@ -26,33 +25,33 @@ static const Index3D indices[] = {
     10, 11, 14, 11, 14, 15
 };
 
-static void uploadVertices(const NFixedPipFrame* const pip, vec2 size, vec2 windowSize, const MeshID id) {
-    const float cornerSize = 100, x = cornerSize / windowSize[0], y = cornerSize / windowSize[1];
+static void uploadVertices(const NFixedPipFrame* const pip, const vec2s size, const vec2s windowSize, const MeshID id) {
+    const float cornerSize = 100, x = cornerSize / windowSize.raw[0], y = cornerSize / windowSize.raw[1];
 
-    vec2 nsize;
+    const vec2s nsize = glms_vec2_div(size, windowSize);
 
-    glm_vec2_div(size, windowSize, nsize);
+    const float rightf = nsize.raw[0], rightc = rightf - x, upperf = nsize.raw[1], upperc = upperf - y;
 
-    const vec2 data[] = {
-	{0, 0}, FREE_CORNER,
-	{x, 0}, LEFT_CORNER,
-	{nsize[0] - x, 0}, RIGHT_CORNER,
-	{nsize[0], 0}, FREE_CORNER,
+    const float data[] = {
+	0,      0, FREE_CORNER,
+	x,      0, LEFT_CORNER,
+	rightc, 0, RIGHT_CORNER,
+	rightf, 0, FREE_CORNER,
 	//upper row
-	{0, y}, RIGHT_CORNER,
-	{x, y}, FILLED_CORNER,
-	{nsize[0] - x, y}, FILLED_CORNER,
-	{nsize[0], y}, LEFT_CORNER,
+	0,      y, RIGHT_CORNER,
+	x,      y, FILLED_CORNER,
+	rightc, y, FILLED_CORNER,
+	rightf, y, LEFT_CORNER,
 	//upper row
-	{0, nsize[1] - y}, LEFT_CORNER,
-	{x, nsize[1] - y}, FILLED_CORNER,
-	{nsize[0] - x, nsize[1] - y}, FILLED_CORNER,
-	{nsize[0], nsize[1] - y}, RIGHT_CORNER,
+	0,      upperc, LEFT_CORNER,
+	x,      upperc, FILLED_CORNER,
+	rightc, upperc, FILLED_CORNER,
+	rightf, upperc, RIGHT_CORNER,
 	//upper row
-	{0, nsize[1]}, FREE_CORNER,
-	{x, nsize[1]}, RIGHT_CORNER,
-	{nsize[0] - x, nsize[1]}, LEFT_CORNER,
-	{nsize[0], nsize[1]}, FREE_CORNER
+	0,      upperf, FREE_CORNER,
+	x,      upperf, RIGHT_CORNER,
+	rightc, upperf, LEFT_CORNER,
+	rightf, upperf, FREE_CORNER
     };
 
     GL_CHECK(GPUBuffer_SubData(pip->base.base.verticesBuffer, (GLsizeiptr)id * MESH_SIZE, sizeof(data), data));
@@ -74,7 +73,7 @@ void NFixedPipFrame_Init(NFixedPipFrame* const pip) {
 
     pip->texture = TexturesHandler_BeginLoadingTask(texturePath, texturePath);
 }
-void NFixedPipFrame_NewFrame(NFixedPipFrame* const pip, vec2 size) {
+void NFixedPipFrame_NewFrame(NFixedPipFrame* const pip, const vec2s size) {
     float windowX, windowY;
 
     WH_GetWindowSize(&windowX, &windowY);
@@ -100,12 +99,11 @@ void NFixedPipFrame_NewFrame(NFixedPipFrame* const pip, vec2 size) {
 
     pip->timestamps[id] = pip->time;
     pip->indices[id] = indicesRegion.position;
+    pip->sizes[id] = size;
 
-    glm_vec2_copy(size, pip->sizes[id]);
-
-    uploadVertices(pip, size, (vec2){windowX, windowY}, id);
+    uploadVertices(pip, size, (vec2s){{windowX, windowY}}, id);
 }
-void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, vec2 windowSize) {
+void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, const vec2s windowSize) {
     for (MeshID i = 0; i < pip->base.base.numMeshes; i++) uploadVertices(pip, pip->sizes[i], windowSize, i);
 }
 void NFixedPipFrame_Run(NFixedPipFrame* const pip) {

@@ -1,21 +1,21 @@
 #ifndef Camera_h_
 #define Camera_h_
 
-#include <cglm/types.h>
+#include <cglm/types-struct.h>
 
 #define PUBVARS_Camera \
 X(float, yaw, FLOAT) \
 X(float, pitch, FLOAT) \
 X(float, distance, FLOAT) \
-X(vec3, lookAtPosition, VECTOR) \
-X(vec3, velocity, VECTOR)
+X(vec3s, lookAtPosition, VECTOR) \
+X(vec3s, velocity, VECTOR)
 
 void Camera_Init();
 float Camera_GetYaw();
 float Camera_GetZoomDistance();
-void Camera_GetPosition(vec3 dest);
-void Camera_GetPerspectiveCameraMatrix(mat4 perspectiveMat, mat4 dest);
-void Camera_SetLookAtPosition(vec3 position);
+vec3s Camera_GetPosition();
+mat4s Camera_GetPerspectiveCameraMatrix(mat4s perspectiveMat);
+void Camera_SetLookAtPosition(vec3s position);
 void Camera_MouseWheel(float scroll, float x, float y);
 void Camera_MouseMotion(float xrel, float yrel);
 

@@ -1,4 +1,4 @@
-#include <cglm/vec3.h>
+#include <cglm/struct/vec3.h>
 #include "Bone.h"
 #include "Array.h"
 #include "PathHandler.h"
@@ -9,7 +9,8 @@
 #include "ModelsHandler.h"
 
 typedef unsigned int TaskID;
-typedef vec3 AABB[2];
+//retypedef
+typedef vec3s AABB[2];
 
 typedef struct {
     ModelLoadInfo baseInfo;
@@ -87,20 +88,20 @@ static void offsetIndices(Index3D indices[const], const GLuint startIndex, const
     for (GLuint i = startIndex; i < startIndex + count; i++) indices[i] += offset;
 }
 static void handlePositionAttribute(
-    float vertices[const], AABB bounding, vec3 highestPoint, 
+    float vertices[const], AABB bounding, vec3s* const highestPoint, 
     const cgltf_attribute* const attribute, const size_t numFloatsVertex
 ) {
     for (cgltf_size i = 0; i < attribute->data->count; i++) {
 	const cgltf_size di = i * VERTEX_POSITIONS_SIZE;
 
-	float* const position = (float*)viewAccessor(attribute->data) + di;
+	vec3s* const position = (vec3s*)((float*)viewAccessor(attribute->data) + di);
 
 	//bounding box
 	if (bounding) {
-	    glm_vec3_minv(bounding[0], (float*)position, bounding[0]);
-	    glm_vec3_maxv(bounding[1], (float*)position, bounding[1]);
+	    bounding[0] = glms_vec3_minv(bounding[0], *position);
+	    bounding[1] = glms_vec3_maxv(bounding[1], *position);
 	}
-	if (highestPoint && position[1] > highestPoint[1]) glm_vec3_copy(position, highestPoint);
+	if (highestPoint && position->raw[1] > highestPoint->raw[1]) *highestPoint = *position;
 
 	memcpy(
 	    vertices + (i * numFloatsVertex) + VERTEX_POSITIONS_OFFSET, 
@@ -114,7 +115,7 @@ static void workerThrd(TaskLoadModel* const task) {
     task->data = data;
 }
 static void handleAttribute(
-    float vertices[const], AABB bounding, vec3 highestPoint, const cgltf_attribute* const attribute, 
+    float vertices[const], AABB bounding, vec3s* const highestPoint, const cgltf_attribute* const attribute, 
     const size_t numFloatsVertex, const float texid
 ) {
     const float* const data = viewAccessor(attribute->data);
@@ -223,7 +224,7 @@ static void loadRig(const cgltf_data* const data, Mesh* const mesh) {
 
 	    Bone_Init(
 		mesh->bones + 0, mesh->bones, skin->joints[0], 
-		&mesh->numBones, (mat4*)viewAccessor(skin->inverse_bind_matrices)
+		&mesh->numBones, (mat4s*)viewAccessor(skin->inverse_bind_matrices)
 	    );
 
 	    mesh->numAnimations = data->animations_count;
@@ -292,7 +293,7 @@ static void loadMesh(const TaskLoadModel* const task) {
 		|| info->pipId == GRAPHICS_PIPELINE_SKINNED) {
 		//pointer math is beautiful
 		handleAttribute(
-		    vertices + (numVertices * numFloatsVertex), NULL, mesh->highestPoint,
+		    vertices + (numVertices * numFloatsVertex), NULL, &mesh->highestPoint,
 		    primitive->attributes + j, numFloatsVertex, (float)texid
 		);
 	    }
@@ -343,7 +344,7 @@ void ModelsHandler_LoadGeometry(const char fileName[const], ModelGeometry* const
 
 	for (cgltf_size j = 0; j < primitive->attributes_count; j++) {
 	    if (primitive->attributes[i].type == cgltf_attribute_type_position) {
-		handlePositionAttribute(outGeometry->vertices[0], NULL, NULL, primitive->attributes + i, 3);
+		handlePositionAttribute(outGeometry->vertices[0].raw, NULL, NULL, primitive->attributes + i, 3);
 
 		break;
 	    }

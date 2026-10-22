@@ -1,10 +1,9 @@
-#include <cglm/mat4.h>
 #include "DebugGuiHandler.h"
 #include "Bone.h"
 
 void Bone_Init(
     Bone* const bone, Bone* const bones, const cgltf_node* const joint, 
-    BoneID* const numBones, mat4* const inverseBindMatrices
+    BoneID* const numBones, const mat4s inverseBindMatrices[const]
 ) {
     bone->name = strdup(joint->name);
 
@@ -14,10 +13,9 @@ void Bone_Init(
     bone->id = *(BoneID*)joint->extras.data;
 
     bone->children = bones + *numBones;
+    bone->off = inverseBindMatrices[bone->id];
 
     *numBones += bone->numChildren;
-
-    glm_mat4_copy(inverseBindMatrices[bone->id], bone->off);
 
     for (size_t i = 0; i < bone->numChildren; i++) {
 	Bone_Init(bone->children + i, bones, joint->children[i], numBones, inverseBindMatrices);

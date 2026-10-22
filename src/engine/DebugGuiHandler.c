@@ -405,14 +405,14 @@ void DGH_Arena(const Arena* const arena, const char name[const]) {
 	nk_group_end(nkc);
     }
 }
-void DGH_Mat4(const mat4 mat, const char name[const]) {
+void DGH_Mat4(const mat4s mat, const char name[const]) {
     const int matrixDimensions = sizeof(mat4) / sizeof(vec4);
 
     if (DGH_Begin(name, matrixDimensions)) {
 	for (int x = 0; x < matrixDimensions; x++) {
 	    defRow(matrixDimensions);
 
-	    for (int y = 0; y < matrixDimensions; y++) displayFloat(mat[x][y]);
+	    for (int y = 0; y < matrixDimensions; y++) displayFloat(mat.raw[x][y]);
 	}
 
 	DGH_End();

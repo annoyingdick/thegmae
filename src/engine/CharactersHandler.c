@@ -1,5 +1,5 @@
-#include <cglm/vec3.h>
-#include <cglm/quat.h>
+#include <cglm/struct/vec3.h>
+#include <cglm/struct/quat.h>
 #include "Arena.h"
 #include "DebugGuiHandler.h"
 #include "CharactersHandler.h"
@@ -26,46 +26,39 @@ static void transformsToDelta(Animation* const animation) {
 	const KeyframeSetTranslation* const setTrans = animation->setsTrans + i;
 	const KeyframeSetRotation* const setRot = animation->setsRot + i;
 
-	float* const origRot = setRot->rotationVersors[0];
+	versors* const origRot = setRot->rotationVersors + 0;
 
 	for (KeyframeID j = 1; j < setTrans->numKeyframes; j++) {
-	    float* const orig = setTrans->translationVectors[0];
-
-	    glm_vec3_sub(setTrans->translationVectors[j], orig, setTrans->translationVectors[j]);
+	    setTrans->translationVectors[j] = glms_vec3_sub(setTrans->translationVectors[j], setTrans->translationVectors[0]);
 	}
 
-	glm_vec3_zero(setTrans->translationVectors[0]);
+	setTrans->translationVectors[0] = glms_vec3_zero();
 
-	glm_quat_inv(origRot, origRot);
+	*origRot = glms_quat_inv(*origRot);
 
 	for (KeyframeID j = 1; j < setRot->numKeyframes; j++) {
-	    glm_quat_mul(origRot, setRot->rotationVersors[j], setRot->rotationVersors[j]);
+	    setRot->rotationVersors[j] = glms_quat_mul(*origRot, setRot->rotationVersors[j]);
 	}
 
-	glm_quat_identity(setRot->rotationVersors[0]);
+	setRot->rotationVersors[0] = glms_quat_identity();
     }
 }
 static void processCharacter(
     Character* const restrict character, Character* const restrict c, float* const minDistance, Character** const result
 ) {
-    vec3 dir;
+    const vec3s dir = glms_vec3_sub(c->position, character->position);
 
-    glm_vec3_sub(c->position, character->position, dir);
-
-    const float distance = glm_vec3_norm2(dir);
+    const float distance = glms_vec3_norm2(dir);
 
     if (distance < *minDistance) {
-	Ray ray;
+	Ray ray = {.position = character->position, .direction = glms_vec3_normalize(dir)};
 
-	glm_vec3_copy(character->position, ray[0]);
+	ray.position.raw[1] += 1;
 
-	ray[0][1] += 1;
+	//why not use the existing memory?
+	const TriangleID tri = Geometry_Raycast(&collision, ray, &ray.position);
 
-	glm_vec3_normalize_to(dir, ray[1]);
-
-	const TriangleID tri = Geometry_Raycast(&collision, ray, ray[0]);
-
-	if (ISINVALID(tri) || glm_vec3_distance2(character->position, ray[0]) > distance) {
+	if (ISINVALID(tri) || glms_vec3_distance2(character->position, ray.position) > distance) {
 	    *minDistance = distance;
 	    *result = c;
 	}
@@ -98,6 +91,7 @@ Character* CH_FindClosestVisibleAimableArmedCharacter(Character* const character
     result = NULL;
 
     foreach (Character* const* const c, characters, nextCharacterId)
+	//can see armed characters behind the back
 	//if (Character_CanSeeDotCheck(character, *c)) {
 	    if (isAimable(*c) && (*c)->hasGun) processCharacter(character, *c, &minDistance, &result);
 	//}

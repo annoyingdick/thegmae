@@ -465,8 +465,8 @@ void R_Loop(const float interp) {
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);
-    NPip_Run(npips + 0);
     NFixedPipFrame_Run(&framesPip);
+    NPip_Run(npips + 0);
 
     renderSyncs[readNormalIndex] = getSync();
 

@@ -17,6 +17,7 @@ typedef struct {
 } NFixedPipFrame;
 
 void NFixedPipFrame_Init(NFixedPipFrame* pip);
+//IMPORTANT MESSAGE: NFixedPipFrame allows only one frame at a time
 void NFixedPipFrame_NewFrame(NFixedPipFrame* pip, vec2s size);
 void NFixedPipFrame_UpdateFrames(const NFixedPipFrame* pip, float ratio);
 void NFixedPipFrame_Run(NFixedPipFrame* pip);

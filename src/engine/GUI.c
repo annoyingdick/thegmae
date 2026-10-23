@@ -9,6 +9,9 @@
 #include "def.h"
 #include "GUI.h"
 
+#define SAFE_ZONE .01f
+#define HINT_SPACE .015f
+
 typedef Index3D QuadIndices[3 + 3];
 typedef vec4s Quad[4]; //two floats for position and other two for tex. coords
 
@@ -103,15 +106,6 @@ static vec2s initText(
 
 	for (size_t j = 0; j < ARRAYSIZE(order); j++) indices[i][j] = order[j] + (i * 4);
 
-	if (text[i] == ' ' && position.raw[0] - origPos.raw[0] > xmax) {
-	    position.raw[0] = origPos.raw[0];
-	    position.raw[1] -= size * 4 / 3;
-
-	    if (position.raw[1] < maxCoords.raw[1]) maxCoords.raw[1] = position.raw[1];
-
-	    continue;
-	}
-
 	if (text[i] >= firstChar) {
 	    Glyph* const glyph = characters + text[i] - firstChar;
 
@@ -121,13 +115,21 @@ static vec2s initText(
 	    vertices[i][0].raw[1] = vertices[i][1].raw[1] = (glyph->coords[TOP] * size) + position.raw[1];
 	    vertices[i][2].raw[1] = vertices[i][3].raw[1] = (glyph->coords[BOTTOM] * size) + position.raw[1];
 
-	    for (size_t j = 0; j < 4; j++) glm_vec2_copy(
-		glyph->texCoords[j].raw, vertices[i][j].raw + VERTEX2D_TEXCOORDS_OFFSET
-	    );
-	    //for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
-	    if (position.raw[0] > maxCoords.raw[0]) maxCoords.raw[0] = position.raw[0];
+	    if (text[i] == ' ' && position.raw[0] - origPos.raw[0] > xmax) {
+		position.raw[0] = origPos.raw[0];
+		position.raw[1] -= size * 4 / 3;
 
-	    position.raw[0] += glyph->advance * size * ratio * (alignRight ? -1.f : 1);
+		if (position.raw[1] < maxCoords.raw[1]) maxCoords.raw[1] = position.raw[1];
+	    }
+	    else {
+		for (size_t j = 0; j < 4; j++) glm_vec2_copy(
+		    glyph->texCoords[j].raw, vertices[i][j].raw + VERTEX2D_TEXCOORDS_OFFSET
+		);
+		//for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
+		position.raw[0] += glyph->advance * size * ratio * (alignRight ? -1.f : 1);
+
+		if (position.raw[0] > maxCoords.raw[0]) maxCoords.raw[0] = position.raw[0];
+	    }
 	}
     }
 
@@ -143,7 +145,7 @@ static vec2s initText(
     //printf("\n%s\n %f %f   %f %f\n", text, origPos.raw[0], origPos.raw[1], maxCoords.raw[0], maxCoords.raw[1]);
     //printf("\n%s\n %f %f\n", text, ret.raw[0], ret.raw[1]);
 
-    return (vec2s){{ret.raw[0] * 2, -ret.raw[1]}};
+    return (vec2s){{ret.raw[0] / ratio, -ret.raw[1]}};
 }
 static void checkJSMN(const int ret, const char path[const]) {
     switch (ret) {
@@ -298,13 +300,20 @@ static void initAmmoText() {
 
     sprintf(string, format, ammoLeft, ammoMag);
 
-    initText(&meshAmmo, string, (vec2s){{1, 1}}, fontSize, 1, INFINITY, true, true);
+    initText(
+	&meshAmmo, string, (vec2s){{1 - (SAFE_ZONE * WH_GetWindowInvRatio()), 1 - SAFE_ZONE}}, 
+	fontSize, 1, INFINITY, true, true
+    );
 }
 static vec2s initHintText() {
-    const float size = .04f, xmax = .5f;
+    const float size = .04f, xmax = .5f, magic = 2.2f;
 
-    return initText(&meshHint, "Press the right mouse button to move character. "
-	"Use the middle mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, xmax, false, true);
+    //return initText(&meshHint, "Press the right mouse button to move character. "
+	//"Use the middle mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, xmax, false, true);
+    return glms_vec2_add(initText(&meshHint, "Use keys '0' and '1' to switch weapons. Your character will automatically try to shoot anybody "
+	"who comes into their view.", 
+	(vec2s){{-1 + (HINT_SPACE * WH_GetWindowInvRatio()), 1 - HINT_SPACE}}, size, 0, xmax, false, true
+    ), (vec2s){{HINT_SPACE * 2, HINT_SPACE * magic}});
 }
 
 void GUI_Init() {

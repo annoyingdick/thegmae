@@ -38,12 +38,12 @@ void main() {
     const float inv = 10 * max(dot(atlasSize, gradient) / (product.s * product.t) / 2, 1);
 
     const float thres = 0.9;
-
     finalColor = vec4(0);
     finalColor = mix(vec4(0), paint(finalColor, thres, tex, inv, vec4(vec3(0), 1)), instancesData[meshId]);
     finalColor = paint(finalColor, thres - 0.4, tex, inv, vec4(1));
 
     finalColor.rgb = mix(sign(finalColor.rgb), finalColor.rgb, instancesData[meshId]);
 
-    gl_FragDepth = 1 - (finalColor.r + 0.00001) * finalColor.a - 0.00001;
+    //0.99999994
+    gl_FragDepth = 1 - (finalColor.r + 3.9999999e-8) * finalColor.a - 3.9999999e-8;
 }

@@ -32,12 +32,14 @@ typedef enum {
     GRAPHICS_PIPELINE_SKINNED,
     GRAPHICS_PIPELINE_STATIC,
     GRAPHICS_PIPELINE_TEXT,
+    GRAPHICS_PIPELINE_GUIFRAMES,
     GRAPHICS_PIPELINE_MAX_ENUM
 } PipID;
 
-#define NUM_DYNAMIC_PIPELINES GRAPHICS_PIPELINE_STATIC
 #define NPIP_BEGIN GRAPHICS_PIPELINE_TEXT
+#define NUM_DYNAMIC_PIPELINES GRAPHICS_PIPELINE_STATIC
 #define NUM_STATIC_PIPELINES NPIP_BEGIN - GRAPHICS_PIPELINE_STATIC
+#define NUM_NORMAL_PIPELINES GRAPHICS_PIPELINE_MAX_ENUM - NPIP_BEGIN
 
 typedef struct {
     RegionSize count;
@@ -88,7 +90,6 @@ void R_ResizeTextureHandlesBuffer(RegionSize oldSize, RegionSize newSize);
 //Shall be called whenever the window gets resized
 void R_SetViewportSize(int width, int height);
 void R_NewMuzzleFlash(Ray ray);
-void R_NewFrame(vec2s size);
 void R_Loop_UpdatePVMat();
 void R_Loop(float interp);
 void R_FixedLoop();

@@ -9,8 +9,15 @@
 #include "def.h"
 #include "GUI.h"
 
-#define SAFE_ZONE .01f
+#define SAFE_ZONE .015f
 #define HINT_SPACE .015f
+#define LINE_SPACING 1.25f
+
+//i don't know why it works and i'm too afraid to ask
+#define FILLED_CORNER 1 + framesTexture, 0
+#define FREE_CORNER framesTexture, 0
+#define RIGHT_CORNER framesTexture, 1
+#define LEFT_CORNER FILLED_CORNER
 
 typedef Index3D QuadIndices[3 + 3];
 typedef vec4s Quad[4]; //two floats for position and other two for tex. coords
@@ -29,10 +36,11 @@ typedef struct {
     float advance;
 } Glyph;
 
-static Mesh meshAmmo, meshHint;
+static Mesh meshAmmo, meshHint, frameHint;
 
 static Ammo ammoMag = MAXT(ammoMag), ammoLeft;
 
+static TextureID framesTexture;
 static char firstChar;
 
 static Glyph* characters;
@@ -97,7 +105,7 @@ static vec2s initText(
     };
 
     maxCoords.raw[0] = -INFINITY;
-    maxCoords.raw[1] = INFINITY;
+    maxCoords.raw[1] = origPos.raw[1] - (size / LINE_SPACING);
 
     alignText(&position, size, ratio, text[0], alignRight, alignTop);
 
@@ -117,7 +125,7 @@ static vec2s initText(
 
 	    if (text[i] == ' ' && position.raw[0] - origPos.raw[0] > xmax) {
 		position.raw[0] = origPos.raw[0];
-		position.raw[1] -= size * 4 / 3;
+		position.raw[1] -= size * LINE_SPACING;
 
 		if (position.raw[1] < maxCoords.raw[1]) maxCoords.raw[1] = position.raw[1];
 	    }
@@ -306,22 +314,82 @@ static void initAmmoText() {
     );
 }
 static vec2s initHintText() {
-    const float size = .04f, xmax = .5f, magic = 2.2f;
+    const float size = .04f, xmax = .5f;
 
     //return initText(&meshHint, "Press the right mouse button to move character. "
 	//"Use the middle mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, xmax, false, true);
-    return glms_vec2_add(initText(&meshHint, "Use keys '0' and '1' to switch weapons. Your character will automatically try to shoot anybody "
+    return glms_vec2_add(initText(&meshHint, 
+	"Use keys '0' and '1' to switch weapons. Your character will automatically try to shoot anybody "
 	"who comes into their view.", 
-	(vec2s){{-1 + (HINT_SPACE * WH_GetWindowInvRatio()), 1 - HINT_SPACE}}, size, 0, xmax, false, true
-    ), (vec2s){{HINT_SPACE * 2, HINT_SPACE * magic}});
+	(vec2s){{((HINT_SPACE + SAFE_ZONE) * WH_GetWindowInvRatio()) - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
+	size, 0, xmax, false, true
+    ), glms_vec2_add(glms_vec2_fill(HINT_SPACE * 2), (vec2s){{0, size / 4}})); //magic division by 4
+}
+static void initFrame(Mesh* const mesh, const vec2s size) {
+    const float cornerSize = .015f, ratio = WH_GetWindowInvRatio(), x = cornerSize * ratio, y = cornerSize;
+
+    const float rightf = size.raw[0] * ratio, rightc = rightf - x, upperf = size.raw[1], upperc = upperf - y;
+
+    //oh yeah, an unmaintainable brick straight out of ass that holds together the entire program
+    const Index3D indices[] = {
+	0, 1, 4, 1, 4, 5,
+	1, 2, 5, 2, 5, 6,
+	2, 6, 7, 2, 3, 7,
+	4, 7, 8, 7, 8, 11,
+	8, 12, 13, 8, 9, 13,
+	9, 10, 13, 10, 13, 14,
+	10, 11, 14, 11, 14, 15
+    };
+
+    float vertices[] = {
+	0,      0, FREE_CORNER,
+	x,      0, LEFT_CORNER,
+	rightc, 0, RIGHT_CORNER,
+	rightf, 0, FREE_CORNER,
+	//upper row
+	0,      y, RIGHT_CORNER,
+	x,      y, FILLED_CORNER,
+	rightc, y, FILLED_CORNER,
+	rightf, y, LEFT_CORNER,
+	//upper row
+	0,      upperc, LEFT_CORNER,
+	x,      upperc, FILLED_CORNER,
+	rightc, upperc, FILLED_CORNER,
+	rightf, upperc, RIGHT_CORNER,
+	//upper row
+	0,      upperf, FREE_CORNER,
+	x,      upperf, RIGHT_CORNER,
+	rightc, upperf, LEFT_CORNER,
+	rightf, upperf, FREE_CORNER
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(vertices); i += 4) {
+	vertices[i] += (SAFE_ZONE * ratio) - 1;
+	vertices[i + 1] += 1 - upperf - SAFE_ZONE;
+    }
+
+    const MeshInitWithDataInfo info = {
+	.verticesSize = ARRAYSIZE(vertices),
+	.numIndices = ARRAYSIZE(indices),
+	.vertices = vertices,
+	.indices = indices
+    };
+
+    if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
+    else {
+	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_GUIFRAMES, info);
+
+	//R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, mesh->id, sizeof(outline), &outline);
+    }
 }
 
 void GUI_Init() {
+    framesTexture = TexturesHandler_BeginLoadingTask("framestexture", "textures/frame.png");
+
     initGlyphs();
 
     initAmmoText();
-
-    R_NewFrame(initHintText());
+    initFrame(&frameHint, initHintText());
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;
@@ -336,7 +404,7 @@ void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
 }
 void GUI_UpdateTexts() {
     initAmmoText();
-    initHintText();
+    initFrame(&frameHint, initHintText());
 }
 void GUI_Loop() {
 

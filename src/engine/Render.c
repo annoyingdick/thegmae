@@ -10,7 +10,6 @@
 #include "DebugGuiHandler.h"
 #include "FixedPipMuzzle.h"
 #include "NPip.h"
-#include "NFixedPipFrame.h"
 #include "Render.h"
 
 #define DO_OPENGL_DEBUG DEBUG
@@ -35,7 +34,6 @@ static Arena indicesArena;
 static GPUBuffer indicesBuffer, textureHandlesBuffer, uniformsBuffer; //private
 static Uniform interpUniform; //private
 static FixedPipMuzzle muzzlePip;
-static NFixedPipFrame framesPip;
 
 static GLuint globalVao; //private
 static RingBufferID readNormalIndex, writeNormalIndex, readInterpIndex, writeInterpIndex;
@@ -45,13 +43,14 @@ static mat4s perspectiveMat;
 
 static IPipDynamic dynamics[NUM_DYNAMIC_PIPELINES];
 static IPipStatic statics[NUM_STATIC_PIPELINES];
-static NPip npips[GRAPHICS_PIPELINE_MAX_ENUM - GRAPHICS_PIPELINE_TEXT];
+static NPip npips[NUM_NORMAL_PIPELINES];
 static const GLsizeiptr pipelinesInstanceDataSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = sizeof(mat4),
     [GRAPHICS_PIPELINE_INTERP] = 3 * sizeof(mat4),
     [GRAPHICS_PIPELINE_SKINNED] = MAX_BONES * sizeof(mat4),
     [GRAPHICS_PIPELINE_STATIC] = 2 * sizeof(mat4),
-    [GRAPHICS_PIPELINE_TEXT] = sizeof(float)
+    [GRAPHICS_PIPELINE_TEXT] = sizeof(float),
+    [GRAPHICS_PIPELINE_GUIFRAMES] = sizeof(float)
 };
 static const GLsizeiptr pipelinesVertexSizes[] = {
     [GRAPHICS_PIPELINE_NORMAL] = (
@@ -61,7 +60,8 @@ static const GLsizeiptr pipelinesVertexSizes[] = {
     [GRAPHICS_PIPELINE_SKINNED] = (
 	VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE + VERTEX_WEIGHTS_SIZE) * sizeof(float), 
     [GRAPHICS_PIPELINE_STATIC] = (VERTEX_POSITIONS_SIZE + VERTEX_TEXCOORDS_SIZE) * sizeof(float),
-    [GRAPHICS_PIPELINE_TEXT] = (VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
+    [GRAPHICS_PIPELINE_TEXT] = (VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float),
+    [GRAPHICS_PIPELINE_GUIFRAMES] = (VERTEX2D_POSITIONS_SIZE + VERTEX2D_TEXCOORDS_SIZE) * sizeof(float)
 };
 
 static GLsync renderSyncs[NUM_RING_BUFFERS];
@@ -242,18 +242,23 @@ static void initPipelines() {
 	    .instanceDataSize = pipelinesInstanceDataSizes[i + NUM_DYNAMIC_PIPELINES]
 	});
     }
+    for (PipID i = 0; i < NUM_NORMAL_PIPELINES; i++) {
+	const char* const fragmentShaderNames[] = {
+	    "gui.frag", "frame.frag"
+	};
+
+	NPip_Init(npips + i, (NPipInitInfo){
+	    .baseInfo = {
+		.mainShaderInfo = { 
+		    .vertexShaderSourceFileName = "gui.vert", .fragmentShaderSourceFileName = fragmentShaderNames[i]
+		},
+		.vertexSize = pipelinesVertexSizes[i + NPIP_BEGIN]
+	    },
+	    .meshDataSize = pipelinesInstanceDataSizes[i + NPIP_BEGIN]
+	});
+    }
 
     FixedPipMuzzle_Init(&muzzlePip, "billboard.geom", "textures/muzzle.png", "textures/muzzleface.png");
-    NPip_Init(npips + 0, (NPipInitInfo){
-	.baseInfo = {
-	    .mainShaderInfo = { 
-		.vertexShaderSourceFileName = "gui.vert", .fragmentShaderSourceFileName = "gui.frag" 
-	    },
-	    .vertexSize = pipelinesVertexSizes[GRAPHICS_PIPELINE_TEXT]
-	},
-	.meshDataSize = pipelinesInstanceDataSizes[GRAPHICS_PIPELINE_TEXT]
-    });
-    NFixedPipFrame_Init(&framesPip);
 }
 static void updateUniforms() {
     mat4s mats[2] = {pvMat, Camera_GetPerspectiveCameraMatrix(glms_mat4_identity())};
@@ -416,14 +421,9 @@ void R_SetViewportSize(const int width, const int height) {
     glViewport(0, 0, width, height);
 
     setPerspectiveMatrix((float)width / (float)height);
-
-    NFixedPipFrame_UpdateFrames(&framesPip, (float)height / (float)width);
 }
 void R_NewMuzzleFlash(const Ray ray) {
     FixedPipMuzzle_NewMuzzle(&muzzlePip, ray.position, ray.direction);
-}
-void R_NewFrame(const vec2s size) {
-    NFixedPipFrame_NewFrame(&framesPip, size);
 }
 void R_Loop_UpdatePVMat() {
     pvMat = Camera_GetPerspectiveCameraMatrix(perspectiveMat);
@@ -465,7 +465,8 @@ void R_Loop(const float interp) {
  
     //gui
     glClear(GL_DEPTH_BUFFER_BIT);
-    NFixedPipFrame_Run(&framesPip);
+    //GUI frames are usually located behind the text
+    NPip_Run(npips + 1);
     NPip_Run(npips + 0);
 
     renderSyncs[readNormalIndex] = getSync();

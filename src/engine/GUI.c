@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "TexturesHandler.h"
 #include "def.h"
+#include "Array.h"
 #include "GUI.h"
 
 #define SAFE_ZONE .015f
@@ -30,17 +31,21 @@ enum {
     INVALID_SIDE
 };
 
+DECLARE_ARRAY_TYPEDEF(Hint)
+DECLARE_ARRAY_IMPL(Hint)
+
 typedef struct {
     float coords[INVALID_SIDE];
     vec2s texCoords[4];
     float advance;
 } Glyph;
 
-static Mesh meshAmmo, meshHint, frameHint;
+static Mesh meshAmmo, hintText, hintFrame;
+static HintArray hints;
 
 static Ammo ammoMag = MAXT(ammoMag), ammoLeft;
-
 static TextureID framesTexture;
+static float currentHintLifeTime;
 static char firstChar;
 
 static Glyph* characters;
@@ -313,18 +318,6 @@ static void initAmmoText() {
 	fontSize, 1, INFINITY, true, true
     );
 }
-static vec2s initHintText() {
-    const float size = .04f, xmax = .5f;
-
-    //return initText(&meshHint, "Press the right mouse button to move character. "
-	//"Use the middle mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, xmax, false, true);
-    return glms_vec2_add(initText(&meshHint, 
-	"Use keys '0' and '1' to switch weapons. Your character will automatically try to shoot anybody "
-	"who comes into their view.", 
-	(vec2s){{((HINT_SPACE + SAFE_ZONE) * WH_GetWindowInvRatio()) - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
-	size, 0, xmax, false, true
-    ), glms_vec2_add(glms_vec2_fill(HINT_SPACE * 2), (vec2s){{0, size / 4}})); //magic division by 4
-}
 static void initFrame(Mesh* const mesh, const vec2s size) {
     const float cornerSize = .015f, ratio = WH_GetWindowInvRatio(), x = cornerSize * ratio, y = cornerSize;
 
@@ -377,19 +370,36 @@ static void initFrame(Mesh* const mesh, const vec2s size) {
 
     if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
     else {
+	const float one = 1;
+
 	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_GUIFRAMES, info);
 
-	//R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, mesh->id, sizeof(outline), &outline);
+	R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, mesh->id, sizeof(float), &one);
     }
+}
+static void initHint(const Hint text) {
+    const float size = .04f, xmax = .5f;
+
+    //return initText(&meshHint, "Press the right mouse button to move character. "
+	//"Use the middle mouse button and WASD keys to relocate the camera", (vec2s){{-1, 1}}, size, 0, xmax, false, true);
+	//"Use keys '0' and '1' to switch weapons. Your character will automatically try to shoot anybody "
+	//"who comes into their view.", 
+    initFrame(&hintFrame, glms_vec2_add(
+	initText(
+	    &hintText, text, (vec2s){{((HINT_SPACE + SAFE_ZONE) * WH_GetWindowInvRatio()) - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
+	    size, 0, xmax, false, true
+	), 
+	glms_vec2_add(glms_vec2_fill(HINT_SPACE * 2), (vec2s){{0, size / 4}}) //magic division by 4
+    ));
 }
 
 void GUI_Init() {
     framesTexture = TexturesHandler_BeginLoadingTask("framestexture", "textures/frame.png");
 
-    initGlyphs();
+    HintArray_Init(&hints);
 
+    initGlyphs();
     initAmmoText();
-    initFrame(&frameHint, initHintText());
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;
@@ -402,10 +412,33 @@ void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
 
     initAmmoText();
 }
+void GUI_NewHint(const Hint hint) {
+    HintArray_AppendElement(&hints, &hint);
+}
 void GUI_UpdateTexts() {
     initAmmoText();
-    initFrame(&frameHint, initHintText());
+
+    if (hints.numElements) initHint(hints.elements[0]);
 }
 void GUI_Loop() {
+    if (hints.numElements) {
+	currentHintLifeTime += WH_GetDeltaTime();
 
+	if (currentHintLifeTime > Hint_GetExpireTime(hints.elements[0])) {
+	    const float fadeTime = .5f;
+
+	    if (hints.numElements > 1) {
+		currentHintLifeTime = 0;
+
+		HintArray_RemoveElement(&hints, 0);
+
+		initHint(hints.elements[0]);
+	    }
+	    else if (currentHintLifeTime > Hint_GetExpireTime(hints.elements[0])) {
+		const float tr = 1 - ((currentHintLifeTime - Hint_GetExpireTime(hints.elements[0])) / fadeTime);
+
+		R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, hintFrame.id, sizeof(float), &tr);
+	    }
+	}
+    }
 }

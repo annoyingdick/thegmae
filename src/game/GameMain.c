@@ -107,6 +107,14 @@ void GM_Init() {
 
     IH_UploadStatic(IH_NewInstance(&navMesh), sizeof(mat), &mat);
 
+    GUI_NewHint(
+	"Press the right mouse button to move character. Use the middle mouse button and WASD keys to relocate the camera"
+    );
+    GUI_NewHint(
+	"Use keys '0' and '1' to switch weapons. Your character will automatically try "
+	"to shoot whoever comes into their view."
+    );
+
     //if (lol) {}
 
     //glm_mat4_identity(IH_GetUploadPtr(lol));

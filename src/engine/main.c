@@ -77,6 +77,8 @@ int main(const int argc, const char* const argv[const]) {
 
 	    R_Loop_UpdatePVMat();
 	    GM_Loop(result.interp);
+	    
+	    GUI_Loop();
 
 	    R_Loop(result.interp);
 

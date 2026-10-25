@@ -2,16 +2,7 @@
 
 #extension GL_ARB_bindless_texture : require
 
-#include "instancesMeshIds.glsl"
-
-DECLARE_IMI(readonly);
-
-layout (binding = $BUFFER_BINDING_TEXTURE_HANDLES$, std430) readonly buffer textureHandlesBuffer {
-    sampler2D textures[];
-};
-layout (binding = $BUFFER_BINDING_INSTANCES_DATA$, std430) readonly buffer instancesDataBuffer {
-    float instancesData[];
-};
+#include "guibuffers.glsl"
 
 in vec2 texcoord;
 flat in uint meshId;

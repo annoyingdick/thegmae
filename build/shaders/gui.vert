@@ -2,14 +2,14 @@
 
 #extension GL_ARB_shader_draw_parameters : require
 
-#include "processVertices.glsl"
-
 struct Vertex {
     float position[2];
     float texcoord[2];
 };
 
-DECLARE_PROCESS_VERTICES_BUFFERS(float);
+layout (binding = $BUFFER_BINDING_VERTICES$, std430) readonly buffer verticesBuffer {
+    Vertex verts[];
+};
 
 out vec2 texcoord;
 flat out uint meshId;

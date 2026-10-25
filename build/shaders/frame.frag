@@ -1,8 +1,10 @@
 #version 460 core
 
+#include "guibuffers.glsl"
+
 #extension GL_ARB_bindless_texture : require
 
-#include "guibuffers.glsl"
+DECLARE_GPUBUFFERS(float);
 
 uniform float currentTime;
 

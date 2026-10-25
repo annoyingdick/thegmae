@@ -148,9 +148,11 @@ static vec2s initText(
 
     if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
     else {
+	const vec2 data = {1, outline};
+	
 	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_TEXT, info);
 
-	R_UploadStatic(GRAPHICS_PIPELINE_TEXT, mesh->id, sizeof(outline), &outline);
+	R_UploadStatic(GRAPHICS_PIPELINE_TEXT, mesh->id, sizeof(data), data);
     }
 
     const vec2s ret = glms_vec2_sub(maxCoords, origPos);// {{maxCoords.raw[0], maxCoords.raw[0]}};
@@ -438,6 +440,7 @@ void GUI_Loop() {
 		const float tr = 1 - ((currentHintLifeTime - Hint_GetExpireTime(hints.elements[0])) / fadeTime);
 
 		R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, hintFrame.id, sizeof(float), &tr);
+		R_UploadStatic(GRAPHICS_PIPELINE_TEXT, hintText.id, sizeof(float), &tr);
 	    }
 	}
     }

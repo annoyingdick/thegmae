@@ -30,6 +30,11 @@ enum {
     TOP,
     INVALID_SIDE
 };
+typedef enum {
+    ALIGN_LEFT,
+    ALIGN_RIGHT,
+    ALIGN_CENTER
+} HorizontalAlign;
 
 DECLARE_ARRAY_TYPEDEF(Hint)
 DECLARE_ARRAY_IMPL(Hint)
@@ -40,7 +45,7 @@ typedef struct {
     float advance;
 } Glyph;
 
-static Mesh meshAmmo, hintText, hintFrame;
+static Mesh meshAmmo, deadText, hintText, hintFrame;
 static HintArray hints;
 
 static Ammo ammoMag = MAXT(ammoMag), ammoLeft;
@@ -84,16 +89,15 @@ static void alignText(
 ) {
     Glyph* const glyph = characters + c - firstChar;
 
-    const float magic = .1f;
-
-    if (alignRight) position->raw[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT] + magic) * size * ratio;
-    if (alignTop) position->raw[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP] + magic) * size;
+    if (alignRight) position->raw[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT]) * size * ratio;
+    if (alignTop) position->raw[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP]) * size;
 }
 static vec2s initText(
     Mesh* const mesh, const char text[const], vec2s position, const float size, const float outline, const float xmax,
-    const bool alignRight, const bool alignTop
+    const HorizontalAlign hor, const bool alignTop
 ) {
     vec2s maxCoords;
+    size_t i;
 
     const vec2s origPos = position;
     const size_t textLength = strlen(text);
@@ -112,9 +116,12 @@ static vec2s initText(
     maxCoords.raw[0] = -INFINITY;
     maxCoords.raw[1] = origPos.raw[1] - (size / LINE_SPACING);
 
-    alignText(&position, size, ratio, text[0], alignRight, alignTop);
+    alignText(&position, size, ratio, text[0], hor == ALIGN_RIGHT, alignTop);
 
-    for (size_t i = alignRight ? textLength - 1 : 0; alignRight ? !ISINVALID(i) : i < textLength; i += alignRight ? -1 : 1) {
+    if (hor) i = hor == ALIGN_CENTER ? textLength / 2 : textLength - 1;
+    else i = 0;
+// hor ? !ISINVALID(i) : i < textLength
+    for (;;) {
 	const Index3D order[] = {0, 1, 2, 0, 2, 3};
 
 	for (size_t j = 0; j < ARRAYSIZE(order); j++) indices[i][j] = order[j] + (i * 4);
@@ -122,8 +129,16 @@ static vec2s initText(
 	if (text[i] >= firstChar) {
 	    Glyph* const glyph = characters + text[i] - firstChar;
 
-	    vertices[i][0].raw[0] = vertices[i][3].raw[0] = (glyph->coords[RIGHT] * size * ratio) + position.raw[0];
-	    vertices[i][1].raw[0] = vertices[i][2].raw[0] = (glyph->coords[LEFT] * size * ratio) + position.raw[0];
+	    float factor;
+
+	    if (hor == ALIGN_CENTER) factor = i >= textLength / 2 ? 1 : -1;
+	    else factor = hor ? -1.f : 1;
+
+	    vertices[i][0].raw[0] = vertices[i][3].raw[0]
+	    = (glyph->coords[factor > 0 ? RIGHT : LEFT] * size * ratio * factor) + position.raw[0];
+
+	    vertices[i][1].raw[0] = vertices[i][2].raw[0]
+	    = (glyph->coords[factor > 0 ? LEFT : RIGHT] * size * ratio * factor) + position.raw[0];
 
 	    vertices[i][0].raw[1] = vertices[i][1].raw[1] = (glyph->coords[TOP] * size) + position.raw[1];
 	    vertices[i][2].raw[1] = vertices[i][3].raw[1] = (glyph->coords[BOTTOM] * size) + position.raw[1];
@@ -138,12 +153,34 @@ static vec2s initText(
 		for (size_t j = 0; j < 4; j++) glm_vec2_copy(
 		    glyph->texCoords[j].raw, vertices[i][j].raw + VERTEX2D_TEXCOORDS_OFFSET
 		);
+
 		//for (size_t j = 0; j < 4; j++) glm_vec2_zero(vertices[i][j] + 2);
-		position.raw[0] += glyph->advance * size * ratio * (alignRight ? -1.f : 1);
+		position.raw[0] += glyph->advance * size * ratio * factor;
 
 		if (position.raw[0] > maxCoords.raw[0]) maxCoords.raw[0] = position.raw[0];
 	    }
 	}
+
+	if (hor) {
+	    if (hor == ALIGN_CENTER) {
+		i += i >= textLength / 2 ? 1 : -1;
+
+		if (i == textLength) {
+		    position.raw[0] = origPos.raw[0];
+
+		    i = (textLength / 2) - 1;
+
+//		    alignText(&position, size, ratio, text[i], true, false);
+		}
+	    }
+	    else i -= 1;
+	}
+	else i += 1;
+
+	if (hor) {
+	    if (ISINVALID(i)) break;
+	}
+	else if (i >= textLength) break;
     }
 
     if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
@@ -316,8 +353,8 @@ static void initAmmoText() {
     sprintf(string, format, ammoLeft, ammoMag);
 
     initText(
-	&meshAmmo, string, (vec2s){{1 - (SAFE_ZONE * WH_GetWindowInvRatio()), 1 - SAFE_ZONE}}, 
-	fontSize, 1, INFINITY, true, true
+	&meshAmmo, string, glms_vec2_fill(1 - SAFE_ZONE), 
+	fontSize, 1, INFINITY, ALIGN_RIGHT, true
     );
 }
 static void initFrame(Mesh* const mesh, const vec2s size) {
@@ -359,7 +396,7 @@ static void initFrame(Mesh* const mesh, const vec2s size) {
     };
 
     for (size_t i = 0; i < ARRAYSIZE(vertices); i += 4) {
-	vertices[i] += (SAFE_ZONE * ratio) - 1;
+	vertices[i] += SAFE_ZONE - 1;
 	vertices[i + 1] += 1 - upperf - SAFE_ZONE;
     }
 
@@ -388,8 +425,8 @@ static void initHint(const Hint text) {
 	//"who comes into their view.", 
     initFrame(&hintFrame, glms_vec2_add(
 	initText(
-	    &hintText, text, (vec2s){{((HINT_SPACE + SAFE_ZONE) * WH_GetWindowInvRatio()) - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
-	    size, 0, xmax, false, true
+	    &hintText, text, (vec2s){{((HINT_SPACE) * WH_GetWindowInvRatio()) + SAFE_ZONE - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
+	    size, 0, xmax, ALIGN_LEFT, true
 	), 
 	glms_vec2_add(glms_vec2_fill(HINT_SPACE * 2), (vec2s){{0, size / 4}}) //magic division by 4
     ));
@@ -401,7 +438,10 @@ void GUI_Init() {
     HintArray_Init(&hints);
 
     initGlyphs();
+
     initAmmoText();
+    
+    GUI_ShowDeath();
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;
@@ -417,8 +457,15 @@ void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
 void GUI_NewHint(const Hint hint) {
     HintArray_AppendElement(&hints, &hint);
 }
+void GUI_ShowDeath() {
+    const float size = .2f;
+
+    initText(&deadText, "GOT POPPED!", glms_vec2_zero(), size, 1.f / 4, INFINITY, ALIGN_CENTER, false);
+}
 void GUI_UpdateTexts() {
     initAmmoText();
+
+    GUI_ShowDeath();
 
     if (hints.numElements) initHint(hints.elements[0]);
 }

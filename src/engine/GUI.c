@@ -50,7 +50,7 @@ static HintArray hints;
 
 static Ammo ammoMag = MAXT(ammoMag), ammoLeft;
 static TextureID framesTexture;
-static float currentHintLifeTime;
+static float currentHintLifeTime, fontSize;
 static char firstChar;
 
 static Glyph* characters;
@@ -74,6 +74,15 @@ static ptrdiff_t isTokenCoord(const char js[const], const jsmntok_t* const token
 static int tokenStrCmp(const char js[const], const char str[const], const jsmntok_t* const token) {
     return token->type == JSMN_STRING ? strncmp(js + token->start, str, token->end - token->start) : 1;
 }
+static float getInvFactor() {
+    const float magic = 8;
+
+    float width, height;
+
+    WH_GetWindowSize(&width, &height);
+
+    return height / magic;
+}
 static TextureID getAtlas(float* const width, float* const height) {
     int w, h;
 
@@ -91,6 +100,11 @@ static void alignText(
 
     if (alignRight) position->raw[0] -= (glyph->coords[LEFT] + glyph->coords[RIGHT]) * size * ratio;
     if (alignTop) position->raw[1] -= (glyph->coords[BOTTOM] + glyph->coords[TOP]) * size;
+}
+static void updateTextData(const float outline, const float size, const InstanceID id) {
+    const vec3 data = {1, outline, getInvFactor() * size};
+
+    R_UploadStatic(GRAPHICS_PIPELINE_TEXT, id, sizeof(data), data);
 }
 static vec2s initText(
     Mesh* const mesh, const char text[const], vec2s position, const float size, const float outline, const float xmax,
@@ -184,13 +198,9 @@ static vec2s initText(
     }
 
     if (Mesh_IsValid(mesh)) Mesh_UpdateIndicesVertices(mesh, info);
-    else {
-	const vec2 data = {1, outline};
-	
-	Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_TEXT, info);
+    else Mesh_InitWithData(mesh, GRAPHICS_PIPELINE_TEXT, info);
 
-	R_UploadStatic(GRAPHICS_PIPELINE_TEXT, mesh->id, sizeof(data), data);
-    }
+    updateTextData(outline, size, mesh->id);
 
     const vec2s ret = glms_vec2_sub(maxCoords, origPos);// {{maxCoords.raw[0], maxCoords.raw[0]}};
 
@@ -213,14 +223,14 @@ static void checkJSMN(const int ret, const char path[const]) {
 }
 static void processGlyphValue(
     const char js[const], Glyph* const character, const jsmntok_t* const token, 
-    const float width, const float height, const float texture, const bool recordingUV
+    const float atlasWidth, const float atlasHeight, const float texture, const bool recordingUV
 ) {
     const ptrdiff_t side = isTokenCoord(js, token);
 
     const float value = strtof(js + token[1].start, NULL);
 
     if (recordingUV) {
-	const float w = (value / width) + texture, h = 1 - (value / height);
+	const float w = (value / atlasWidth) + texture, h = 1 - (value / atlasHeight);
 
 	switch (side) {
 	case LEFT:
@@ -239,12 +249,13 @@ static void processGlyphValue(
     else character->coords[side] = value;
 }
 static void processTokens(jsmntok_t tokens[const], const char js[const], const char path[const], const int numTokens) {
-    float width, height;
+    float atlasWidth, atlasHeight;
 
-    const float texture = (float)getAtlas(&width, &height);
+    const float texture = (float)getAtlas(&atlasWidth, &atlasHeight);
 
     for (const jsmntok_t* token = tokens; token < tokens + numTokens - 1; token++) {
-	if (!tokenStrCmp(js, "glyphs", token)) {
+	if (!tokenStrCmp(js, "size", token)) fontSize = strtof(js + token[1].start, NULL);
+	else if (!tokenStrCmp(js, "glyphs", token)) {
 	    const int numGlyphs = (++token)->size;
 
 	    if (token->type != JSMN_ARRAY) throwFatal(path, "'glyphs' has been expected to be an array");
@@ -279,7 +290,7 @@ static void processTokens(jsmntok_t tokens[const], const char js[const], const c
 			if (!tokenStrCmp(js, "advance", token)) character->advance = strtof(js + token[1].start, NULL);
 			else if (!tokenStrCmp(js, "planeBounds", token)) recordingUV = false;
 			else if (!tokenStrCmp(js, "atlasBounds", token)) recordingUV = true;
-			else processGlyphValue(js, character, token, width, height, texture, recordingUV);
+			else processGlyphValue(js, character, token, atlasWidth, atlasHeight, texture, recordingUV);
 		    }
 
 		    token += 2;
@@ -460,7 +471,7 @@ void GUI_NewHint(const Hint hint) {
 void GUI_ShowDeath() {
     const float size = .2f;
 
-    initText(&deadText, "GOT POPPED!", glms_vec2_zero(), size, 1.f / 4, INFINITY, ALIGN_CENTER, false);
+    initText(&deadText, "Got smoked!", glms_vec2_zero(), size, 1.f / 4, INFINITY, ALIGN_CENTER, false);
 }
 void GUI_UpdateTexts() {
     initAmmoText();

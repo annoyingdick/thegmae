@@ -15,7 +15,8 @@
 
 static Mesh cubeMeshDyn, tlt, navMesh;
 static Mesh weaponMesh;
-static Character character, angry[NUM_TEST_CHARACTERS];
+static Player character;
+static Character angry[NUM_TEST_CHARACTERS];
 static ShaderProgram linesProgram;
 static GPUBuffer linesVerticesBuffer, linesIndicesBuffer;
 
@@ -69,11 +70,11 @@ void GM_Init() {
     Mesh_Init(&navMesh, GRAPHICS_PIPELINE_STATIC, "nav.gltf");
     Mesh_Init(&weaponMesh, GRAPHICS_PIPELINE_NORMAL, "deagle.gltf");
 
-    Character_Init(&character, &weaponMesh);
+    Character_Init(&character.base, &weaponMesh);
 
-    *GUI_GetCharacter() = &character;
+    *GUI_GetCharacter() = &character.base;
 
-    character.hasGun = true;
+    character.base.hasGun = true;
 
     nforeach (Character* const an, angry)
 	Character_Init(an, &weaponMesh);
@@ -158,23 +159,23 @@ void GM_KeyDown(const SDL_Keycode key) {
 	tltspace = true;
 	break;
     case SDLK_UP:
-	Character_ChooseSlot(&character, character.currentSlot + 1);
+	Character_ChooseSlot(&character.base, character.base.currentSlot + 1);
 	break;
     case SDLK_DOWN:
-	Character_ChooseSlot(&character, character.currentSlot - 1);
+	Character_ChooseSlot(&character.base, character.base.currentSlot - 1);
 	break;
     case SDLK_1:
-	Character_ChooseSlot(&character, 0);
+	Character_ChooseSlot(&character.base, 0);
 	break;
     case SDLK_2:
-	Character_ChooseSlot(&character, 1);
+	Character_ChooseSlot(&character.base, 1);
 	break;
     case SDLK_X:
-	Character_SwitchAim(&character, character.state != CHARACTER_STATE_AIM);
+	Character_SwitchAim(&character.base, character.base.state != CHARACTER_STATE_AIM);
 	break;
     case SDLK_C:
-	if (character.state == CHARACTER_STATE_SPRINT) Character_StopSprinting(&character);
-	else Character_BeginSprinting(&character);
+	if (character.base.state == CHARACTER_STATE_SPRINT) Character_StopSprinting(&character.base);
+	else Character_BeginSprinting(&character.base);
 
 	break;
     case SDLK_LSHIFT:
@@ -226,7 +227,7 @@ void GM_Loop(const float interp) {
 
 	const TriangleID goalTri = Geometry_Raycast(NH_GetGeometry(), ray, &ray.position);
 
-	if (!ISINVALID(goalTri)) Character_GoTo(&character, ray.position, goalTri);
+	if (!ISINVALID(goalTri)) Character_GoTo(&character.base, ray.position, goalTri);
 
 	mouse3 = false;
     }

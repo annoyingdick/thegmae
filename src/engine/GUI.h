@@ -11,6 +11,7 @@ void GUI_UpdateAmmoBoth(Ammo mag, Ammo left);
 //Use a string from either heap or static memory
 void GUI_NewHint(Hint hint);
 void GUI_ShowDeath();
+void GUI_HideDeath();
 //Called whenever window is resized
 void GUI_UpdateTexts();
 void GUI_Loop();

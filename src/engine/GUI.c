@@ -475,6 +475,11 @@ void GUI_ShowDeath() {
 
     initText(&deadText, "Got smoked!", glms_vec2_zero(), size, 1.f / 4, INFINITY, ALIGN_CENTER, false);
 }
+void GUI_HideDeath() {
+    Mesh_Destroy(&deadText);
+
+    timeBeingDead = 0;
+}
 void GUI_UpdateTexts() {
     initAmmoText();
 

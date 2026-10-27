@@ -3,7 +3,11 @@
 
 #include "Character.h"
 
-typedef Character Player;
+typedef struct {
+    Character base;
+
+    float timeBeingDead;
+} Player;
 
 void Player_Loop(Player* player);
 

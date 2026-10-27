@@ -6,12 +6,12 @@
 #include "Geometry.h"
 #include "vec3Array.h"
 #include "AnimationTrack.h"
-#include "GUI.h"
 
 #define FLOAT_BINONE nextafterf(0, INFINITY)
 
 typedef uint8_t SlotID;
 typedef uint8_t StateID;
+typedef unsigned int Ammo;
 
 enum : SlotID {
     SLOT_NOTHING,

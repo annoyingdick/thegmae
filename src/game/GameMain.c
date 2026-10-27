@@ -7,10 +7,11 @@
 #include "engine/Pip.h"
 #include "engine/Geometry.h"
 #include "engine/NavigationHandler.h"
+#include "engine/GUI.h"
 #include "TestMeshStreaming.h"
 
 #define NUM_TEST_CUBES 1
-#define NUM_TEST_CHARACTERS 1
+#define NUM_TEST_CHARACTERS 3
 
 static Mesh cubeMeshDyn, tlt, navMesh;
 static Mesh weaponMesh;
@@ -69,6 +70,8 @@ void GM_Init() {
     Mesh_Init(&weaponMesh, GRAPHICS_PIPELINE_NORMAL, "deagle.gltf");
 
     Character_Init(&character, &weaponMesh);
+
+    *GUI_GetCharacter() = &character;
 
     character.hasGun = true;
 

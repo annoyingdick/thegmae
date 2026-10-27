@@ -50,10 +50,11 @@ static HintArray hints;
 
 static Ammo ammoMag = MAXT(ammoMag), ammoLeft;
 static TextureID framesTexture;
-static float currentHintLifeTime, fontSize;
+static float currentHintLifeTime, timeBeingDead, fontSize;
 static char firstChar;
 
 static Glyph* characters;
+static const Character* playableCharacter;
 
 static ptrdiff_t isTokenCoord(const char js[const], const jsmntok_t* const token) {
     if (token->type == JSMN_STRING) {
@@ -451,8 +452,9 @@ void GUI_Init() {
     initGlyphs();
 
     initAmmoText();
-    
-    GUI_ShowDeath();
+}
+const Character** GUI_GetCharacter() {
+    return &playableCharacter;
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;
@@ -476,7 +478,7 @@ void GUI_ShowDeath() {
 void GUI_UpdateTexts() {
     initAmmoText();
 
-    GUI_ShowDeath();
+    if (timeBeingDead) GUI_ShowDeath();
 
     if (hints.numElements) initHint(hints.elements[0]);
 }
@@ -497,9 +499,16 @@ void GUI_Loop() {
 	    else if (currentHintLifeTime > Hint_GetExpireTime(hints.elements[0])) {
 		const float tr = 1 - ((currentHintLifeTime - Hint_GetExpireTime(hints.elements[0])) / fadeTime);
 
-		R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, hintFrame.id, sizeof(float), &tr);
-		R_UploadStatic(GRAPHICS_PIPELINE_TEXT, hintText.id, sizeof(float), &tr);
+		R_UploadStatic(GRAPHICS_PIPELINE_GUIFRAMES, hintFrame.id, sizeof(tr), &tr);
+		R_UploadStatic(GRAPHICS_PIPELINE_TEXT, hintText.id, sizeof(tr), &tr);
 	    }
 	}
+    }
+    if (playableCharacter->state == CHARACTER_STATE_DEAD) {
+	timeBeingDead += WH_GetDeltaTime();
+
+	const float opacity = fminf((timeBeingDead - 1) * 2, 1);
+
+	R_UploadStatic(GRAPHICS_PIPELINE_TEXT, deadText.id, sizeof(opacity), &opacity);
     }
 }

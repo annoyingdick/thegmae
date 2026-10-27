@@ -8,6 +8,7 @@
 #include "NavigationHandler.h"
 #include "CharactersHandler.h"
 #include "DebugGuiHandler.h"
+#include "GUI.h"
 
 //#define DO_NOT_KILL
 
@@ -635,6 +636,8 @@ void Character_Loop(Character* const character) {
 			character->target->target = NULL;
 
 			character->target->path.numElements = 0;
+
+			if (character->target == *GUI_GetCharacter()) GUI_ShowDeath();
 		    }
 #endif
 		}

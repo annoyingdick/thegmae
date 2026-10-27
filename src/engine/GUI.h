@@ -2,10 +2,10 @@
 #define GUI_h_
 
 #include "Hint.h"
-
-typedef unsigned int Ammo;
+#include "Character.h"
 
 void GUI_Init();
+const Character** GUI_GetCharacter();
 void GUI_UpdateAmmoMag(Ammo mag);
 void GUI_UpdateAmmoBoth(Ammo mag, Ammo left);
 //Use a string from either heap or static memory

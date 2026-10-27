@@ -1,3 +1,4 @@
+#include "GUI.h"
 #include "Player.h"
 
 void Player_Loop(Player* const player) {

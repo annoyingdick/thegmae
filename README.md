@@ -1,6 +1,8 @@
 # Building
 Use CMake. All libraries should be static so you won't need dlls or similar trash.
 ## Note that you must copy assets from 'build' directory to your executable's dir for program/game to work
+# License
+The project's source code is licensed under GNU GPL3. The assets - under CC BY-SA 4.0. Read the LICENSE file.
 # Credits
 These libraries were used:
 * GLFW under zlib license: https://github.com/glfw/glfw/blob/master/LICENSE.md
@@ -12,7 +14,7 @@ These libraries were used:
 * khashl.h from klib under MIT license: https://github.com/attractivechaos/klib/blob/master/LICENSE.txt
 
 The assets:
-* CC-BY-4.0: https://creativecommons.org/licenses/by/4.0
+* CC BY 4.0: https://creativecommons.org/licenses/by/4.0
   * MosquitoInAmber: https://sketchfab.com/3d-models/real-time-refraction-demo-mosquito-in-amber-37233d6ed84844fea1ebe88069ea58d1
   * Deagle: https://sketchfab.com/3d-models/desert-eagle-4be942b4b2004a6c9cc47e2961b8e6fd
 * The character model and it's animations are from https://www.mixamo.com

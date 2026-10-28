@@ -1,8 +1,6 @@
 #ifndef DebugGuiHandler_h_
 #define DebugGuiHandler_h_
 
-#include <SDL3/SDL_video.h>
-#include <SDL3/SDL_events.h>
 #include "Arena.h"
 #include "Mesh.h"
 #include "Geometry.h"
@@ -118,9 +116,9 @@ typedef struct {
     const char* name;
 } ArrayView;
 
-void DGH_Init(SDL_Window* window);
+void DGH_Init();
 void DGH_InputBegin();
-void DGH_HandleEvent(SDL_Event* event);
+void DGH_HandleEvent();
 void DGH_InputEnd();
 void DGH_Draw();
 

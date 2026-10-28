@@ -267,6 +267,13 @@ static void updateUniforms() {
 
     GL_CHECK(GPUBuffer_SubData(uniformsBuffer, 0, sizeof(mats), mats));
 }
+static void resizeViewport() {
+    int width, height;
+
+    WH_GetWindowSizeInt(&width, &height);
+
+    R_SetViewportSize(width, height);
+}
 
 void R_Init() {
     initGlew();
@@ -312,6 +319,8 @@ void R_Init() {
 
     glPatchParameteri(GL_PATCH_VERTICES, NUM_VERTICES_PER_PATCH);
     glClearColor(.0f, .0f, .0f, 1.0f);
+
+    resizeViewport();
 }
 MeshID R_NewMesh(const PipID pipId) {
     if (pipId >= NPIP_BEGIN) return NPip_NewMesh(npips + pipId - NPIP_BEGIN, pipelinesInstanceDataSizes[pipId]) ;

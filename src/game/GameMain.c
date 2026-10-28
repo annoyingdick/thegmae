@@ -1,4 +1,6 @@
-#include <SDL3/SDL_Init.h>
+#define GLFW_INCLUDE_NONE
+
+#include <GLFW/glfw3.h>
 #include <cglm/struct/mat4.h>
 #include "engine/Player.h"
 #include "engine/Npc.h"
@@ -141,72 +143,69 @@ void GM_Mouse3(const NSC coords) {
 
     //printf("%f %f %f\n", result[0], result[1], result[2]);
 }
-void GM_KeyDown(const SDL_Keycode key) {
+void GM_KeyDown(const int key) {
     switch (key) {
-    case SDLK_W:
+    case GLFW_KEY_W:
 	moveForward = true;
 	break;
-    case SDLK_S:
+    case GLFW_KEY_S:
 	moveBack = true;
 	break;
-    case SDLK_D:
+    case GLFW_KEY_D:
 	moveRight = true;
 	break;
-    case SDLK_A:
+    case GLFW_KEY_A:
 	moveLeft = true;
 	break;
-    case SDLK_SPACE:
+    case GLFW_KEY_SPACE:
 	tltspace = true;
 	break;
-    case SDLK_UP:
+    case GLFW_KEY_UP:
 	Character_ChooseSlot(&character.base, character.base.currentSlot + 1);
 	break;
-    case SDLK_DOWN:
+    case GLFW_KEY_DOWN:
 	Character_ChooseSlot(&character.base, character.base.currentSlot - 1);
 	break;
-    case SDLK_1:
+    case GLFW_KEY_1:
 	Character_ChooseSlot(&character.base, 0);
 	break;
-    case SDLK_2:
+    case GLFW_KEY_2:
 	Character_ChooseSlot(&character.base, 1);
 	break;
-    case SDLK_X:
+    case GLFW_KEY_X:
 	Character_SwitchAim(&character.base, character.base.state != CHARACTER_STATE_AIM);
 	break;
-    case SDLK_C:
+    case GLFW_KEY_C:
 	if (character.base.state == CHARACTER_STATE_SPRINT) Character_StopSprinting(&character.base);
 	else Character_BeginSprinting(&character.base);
 
 	break;
-    case SDLK_LSHIFT:
-    case SDLK_RSHIFT:
+    case GLFW_KEY_LEFT_SHIFT:
+    case GLFW_KEY_RIGHT_SHIFT:
 	shift = true;
     }
 }
-void GM_KeyUp(const SDL_Keycode key) {
+void GM_KeyUp(const int key) {
     switch (key) {
-    case SDLK_W:
+    case GLFW_KEY_W:
 	moveForward = false;
 	break;
-    case SDLK_S:
+    case GLFW_KEY_S:
 	moveBack = false;
 	break;
-    case SDLK_D:
+    case GLFW_KEY_D:
 	moveRight = false;
 	break;
-    case SDLK_A:
+    case GLFW_KEY_A:
 	moveLeft = false;
 	break;
-    case SDLK_SPACE:
+    case GLFW_KEY_SPACE:
 	tltspace = false;
 	break;
-    case SDLK_LSHIFT:
-    case SDLK_RSHIFT:
+    case GLFW_KEY_LEFT_SHIFT:
+    case GLFW_KEY_RIGHT_SHIFT:
 	shift = false;
     }
-}
-void GM_SetMetadata() {
-    SDL_SetAppMetadata("Game", "0.1.0", "com.annoyingdick.game");
 }
 void GM_Loop(const float interp) {
     //as soon as there are other instances that were created before tlt, tlti must be non zero

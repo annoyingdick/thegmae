@@ -10,15 +10,14 @@ set(ENABLE_ALL_WARNINGS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SDL_TEST_LIBRARY OFF)
 set(glew-cmake_BUILD_SHARED OFF)
 
 FetchContent_Declare(
-    SDL
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL
-    GIT_TAG release-3.4.16
+    GLFW
+    GIT_REPOSITORY https://github.com/glfw/glfw
+    GIT_TAG 3.5.1
 )
-FetchContent_MakeAvailable(SDL)
+FetchContent_MakeAvailable(GLFW)
 FetchContent_Declare(
     GLEW
     GIT_REPOSITORY https://github.com/Perlmint/glew-cmake
@@ -68,12 +67,13 @@ file(GLOB SOURCES "src/*/*.c")
 add_executable(thegmae ${SOURCES})
 
 target_include_directories(thegmae PRIVATE src)
-target_link_libraries(thegmae SDL3-static)
+target_link_libraries(thegmae glfw)
 target_link_libraries(thegmae libglew_static)
 target_link_libraries(thegmae cglm)
 
 #target_include_directories(thegmae PRIVATE ${SDL_SOURCE_DIR}/include)
 
+target_include_directories(thegmae PUBLIC "${GLFW_SOURCE_DIR}/include")
 target_include_directories(thegmae PUBLIC ${nuklear_SOURCE_DIR})
 target_include_directories(thegmae PUBLIC ${stbimage_SOURCE_DIR})
 target_include_directories(thegmae SYSTEM PUBLIC ${stbinclude_SOURCE_DIR})

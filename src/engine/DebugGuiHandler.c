@@ -49,6 +49,7 @@ static void initSelectablesActiveStyle() {
     nkc->style.selectable.normal_active = nkc->style.selectable.hover_active = selectableStyle;
     nkc->style.selectable.pressed_active = selectableStyle;
 }
+/*
 static void initFont() {
     const float height = 28;
 
@@ -63,6 +64,7 @@ static void initFont() {
 
     if (font) nkc->style.font = &font->handle;
 }
+*/
 static void makeMenus() {
     int i;
 
@@ -220,13 +222,14 @@ static void makeGui() {
     */
 }
 static void render() {
-    const int maxVertexBuffer = 512 * 1024, maxElementBuffer = 128 * 1024;
+    //const int maxVertexBuffer = 512 * 1024, maxElementBuffer = 128 * 1024;
 
-    nk_sdl_render(NK_ANTI_ALIASING_ON, maxVertexBuffer, maxElementBuffer);
+    //nk_sdl_render(NK_ANTI_ALIASING_ON, maxVertexBuffer, maxElementBuffer);
 }
 
-void DGH_Init(SDL_Window* const window) {
-    nkc = nk_sdl_init(window);
+void DGH_Init() {
+    return;
+    //nkc = nk_sdl_init(window);
 
     nkc->style.selectable.text_normal = nkc->style.selectable.text_normal_active = NK_WHITE;
     nkc->style.selectable.text_hover = nkc->style.selectable.text_hover_active = NK_WHITE;
@@ -234,7 +237,7 @@ void DGH_Init(SDL_Window* const window) {
     nkc->style.window.spacing.y = 0;
 
     initSelectablesActiveStyle();
-    initFont();
+    //initFont();
 
     //some preparations
     DGH_Draw();
@@ -254,8 +257,8 @@ void DGH_Init(SDL_Window* const window) {
 void DGH_InputBegin() {
     nk_input_begin(nkc);
 }
-void DGH_HandleEvent(SDL_Event* const event) {
-    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_GRAVE) isOpen = !isOpen;
+void DGH_HandleEvent() {
+    //if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_GRAVE) isOpen = !isOpen;
 
     /*const float scale = .5f;
 
@@ -273,7 +276,7 @@ void DGH_HandleEvent(SDL_Event* const event) {
         break;
     }*/
 
-    nk_sdl_handle_event(event);
+    //nk_sdl_handle_event(event);
 }
 void DGH_InputEnd() {
     nk_input_end(nkc);

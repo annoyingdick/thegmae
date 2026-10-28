@@ -5,13 +5,13 @@
 #include <stdbool.h>
 
 #define NANOSECONDS_IN_ONE_SECOND 1000000000
-#define FIXED_LOOP_DELTA_TIME_NS 15625000
+#define FIXED_LOOP_HZ 64
 
 #define FIXED_LOOP_DELTA_TIME_S ((float)FIXED_LOOP_DELTA_TIME_NS / NANOSECONDS_IN_ONE_SECOND)
 
 #define TO_NDC(x) x[0] = (x[0] * 2) - 1; x[1] = 1 - (x[1] * 2)
 
-typedef uint64_t Time;
+typedef double Time;
 typedef uint8_t WHLoopResultCode;
 
 //Normalized screen coordinates (0 to 1, 0;0 is top-left)
@@ -33,6 +33,7 @@ enum {
 void WH_Init();
 void WH_R_PostInit();
 void WH_GetWindowSize(float* width, float* height);
+void WH_GetWindowSizeInt(int* width, int* height);
 float WH_GetWindowInvRatio();
 float WH_GetDeltaTime();
 bool WH_IsEditorOn();

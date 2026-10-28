@@ -469,6 +469,8 @@ void GUI_UpdateAmmoBoth(const Ammo mag, const Ammo left) {
 }
 void GUI_NewHint(const Hint hint) {
     HintArray_AppendElement(&hints, &hint);
+
+    if (hints.numElements == 1) initHint(hints.elements[0]);
 }
 void GUI_ShowDeath() {
     const float size = .2f;

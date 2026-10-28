@@ -15,6 +15,5 @@
 #define STBTT_free(x, u) ((void)(u), free(x))
 
 #include <nuklear.h>
-#include <nuklear_sdl_gl3.h>
 
 #endif

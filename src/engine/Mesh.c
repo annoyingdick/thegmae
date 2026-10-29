@@ -125,6 +125,9 @@ void Mesh_UpdateIndicesVertices(Mesh* const mesh, const MeshInitWithDataInfo inf
 	.numIndices = mesh->indicesRegion.size,
     });
 }
+void Mesh_Invalidate(Mesh* const mesh) {
+    mesh->indicesRegion.size = 0;
+}
 void Mesh_Destroy(Mesh* const mesh) {
     const bool isLoaded = mesh->indicesRegion.size != 1;
 
@@ -156,7 +159,7 @@ void Mesh_Destroy(Mesh* const mesh) {
     if (!isLoaded) *mesh->selfInTask = NULL; 
 
     //invalidate
-    mesh->indicesRegion.size = 0;
+    Mesh_Invalidate(mesh);
 }
 
 DGH_BEGIN(Mesh, mesh, 17) {

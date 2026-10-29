@@ -58,6 +58,7 @@ bool Mesh_IsValid(const Mesh* mesh);
 InstanceID Mesh_NewInstance(Mesh* mesh);
 void Mesh_DeleteInstance(Mesh* mesh);
 void Mesh_UpdateIndicesVertices(Mesh* mesh, MeshInitWithDataInfo info);
+void Mesh_Invalidate(Mesh* mesh);
 void Mesh_Destroy(Mesh* mesh);
 
 void Mesh_DrawDebugGui(const Mesh* mesh, const char name[]);

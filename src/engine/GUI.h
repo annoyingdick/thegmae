@@ -6,6 +6,8 @@
 
 void GUI_Init();
 const Character** GUI_GetCharacter();
+//Returns true if error text has been created successfully
+bool GUI_ThrowError(Hint title, Hint description);
 void GUI_UpdateAmmoMag(Ammo mag);
 void GUI_UpdateAmmoBoth(Ammo mag, Ammo left);
 //Use a string from either heap or static memory

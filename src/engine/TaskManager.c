@@ -5,7 +5,7 @@
 #define NUM_WORKERS 1
 #define INIT_NUM_TASKS 2
 
-#define FORBID_SLEEPING
+//#define FORBID_SLEEPING
 
 typedef struct {
     Task* elements;

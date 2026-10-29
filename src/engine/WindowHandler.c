@@ -14,7 +14,9 @@
 
 #define SPEEDUP_FACTOR 1
 
-#define THROWERROR(t, m) fprintf(stderr, "%s\n%s\n", t, m); exit(EXIT_FAILURE)
+//this is dumb but good enough
+#define THROWERROR(t, m) if (!GUI_ThrowError(t, m)) fprintf(stderr, "The gmae crashed!\n%s\n%s", t, m); \
+    R_Loop(0); WH_R_PostLoop(); while (!glfwWindowShouldClose(window)) { glfwWaitEvents(); } exit(EXIT_FAILURE)
 
 static Time currentTime, currentTimeFixed, deltaTime;
 static int vsync = true;
@@ -59,7 +61,7 @@ static WHLoopResult doTimeOperations() {
     };
 }
 static void glfwCallback(const int error, const char description[const]) {
-    if (error) throwFatal("GLFW error has occurred!", description);
+    if (error) throwFatal("GLFW error occurred!", description);
 }
 static void resizeCallback(GLFWwindow* const window, const int width, const int height) {
     if (window) {}
@@ -133,8 +135,8 @@ static void mouseMoveCallback(GLFWwindow* const window, const double xpos, const
     mousey = ypos;
 }
 static void createWindow() {
-    if (!(window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Game", NULL, NULL))) {
-	throwFatal("GLFW error has occurred!", "Failed to create either a window or OpenGL context!");
+    if (!(window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "THEGMAE", NULL, NULL))) {
+	throwFatal("GLFW error occurred!", "Failed to create a window and OpenGL context!");
     }
 }
 static void setHints() {
@@ -209,7 +211,7 @@ static void setHints() {
 }
 
 void WH_Init() {
-    if (!glfwInit()) throwFatal("GLFW error has occurred!", "Failed to initialize the library");
+    if (!glfwInit()) throwFatal("GLFW error occurred!", "Failed to initialize the library");
 
     glfwSetErrorCallback(glfwCallback);
 

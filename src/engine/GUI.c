@@ -437,7 +437,7 @@ static void initHint(const Hint text) {
 	//"who comes into their view.", 
     initFrame(&hintFrame, glms_vec2_add(
 	initText(
-	    &hintText, text, (vec2s){{((HINT_SPACE) * WH_GetWindowInvRatio()) + SAFE_ZONE - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
+	    &hintText, text, (vec2s){{(HINT_SPACE * WH_GetWindowInvRatio()) + SAFE_ZONE - 1, 1 - HINT_SPACE - SAFE_ZONE}}, 
 	    size, 0, xmax, ALIGN_LEFT, true
 	), 
 	glms_vec2_add(glms_vec2_fill(HINT_SPACE * 2), (vec2s){{0, size / 4}}) //magic division by 4
@@ -452,9 +452,42 @@ void GUI_Init() {
     initGlyphs();
 
     initAmmoText();
+
+    //throwFatal(
+    //"Oh man, your pc is fucked!", "Ur system32 folder's been filled with furry pron, send some bitcoin to me and i"
+    //"'ll revert this shit");
 }
 const Character** GUI_GetCharacter() {
     return &playableCharacter;
+}
+bool GUI_ThrowError(const Hint title, const Hint description) {
+    if (characters) {
+	const float size = .1f, outline = .25f, xmax = 1.5f;
+
+	Mesh tmesh, titmesh, dmesh, cmesh;
+
+	float y;
+
+	Mesh_Invalidate(&tmesh);
+	Mesh_Invalidate(&titmesh);
+	Mesh_Invalidate(&dmesh);
+	Mesh_Invalidate(&cmesh);
+
+	y = initText(
+	    &tmesh, "The gmae crashed!", (vec2s){{-1, 1}}, size * 2, outline, xmax, ALIGN_LEFT, true
+	).raw[1] + size;
+
+	y += initText(&titmesh, title, (vec2s){{-1, 1 - y}}, size, outline, xmax, ALIGN_LEFT, true).raw[1] + size;
+	y += initText(&dmesh, description, (vec2s){{-1, 1 - y}}, size, outline, xmax, ALIGN_LEFT, true).raw[1] + size;
+	initText(
+	    &cmesh, "Please open an issue on 'github.com/annoyingdick/thegmae' if the error persists", 
+	    (vec2s){{-1, 1 - y}}, size / 2, outline, xmax, ALIGN_LEFT, true
+	);
+
+	return true;
+    }
+
+    return false;
 }
 void GUI_UpdateAmmoMag(const Ammo mag) {
     ammoMag = mag;

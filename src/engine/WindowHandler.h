@@ -42,6 +42,4 @@ void WH_Quit();
 WHLoopResult WH_Loop();
 void WH_R_PostLoop();
 
-void WH_DrawDebugGui();
-
 #endif

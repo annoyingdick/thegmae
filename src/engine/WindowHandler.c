@@ -5,9 +5,7 @@
 #include "game/GameMain.h"
 #include "GUI.h"
 #include "WindowHandler.h"
-
 #include "DebugGuiHandler.h"
-#include <GLFW/glfw3.h>
 
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 900
@@ -15,7 +13,7 @@
 #define SPEEDUP_FACTOR 1
 
 //this is dumb but good enough
-#define THROWERROR(t, m) if (!GUI_ThrowError(t, m)) fprintf(stderr, "The gmae crashed!\n%s\n%s", t, m); \
+#define THROWERROR(t, m) if (!GUI_ThrowError(t, m)) fprintf(stderr, "The gmae has crashed!\n%s\n%s", t, m); \
     R_Loop(0); WH_R_PostLoop(); while (!glfwWindowShouldClose(window)) { glfwWaitEvents(); } exit(EXIT_FAILURE)
 
 static Time currentTime, currentTimeFixed, deltaTime;
@@ -243,7 +241,7 @@ void WH_Init() {
     //SDL_CHECK(SDL_StartTextInput(window));
 }
 void WH_R_PostInit() {
-    DGH_Init();
+    DGH_Init(window);
 }
 void WH_GetWindowSize(float* const width, float* const height) {
     int w, h;
@@ -286,14 +284,7 @@ WHLoopResult WH_Loop() {
     return doTimeOperations();
 }
 void WH_R_PostLoop() {
-    DGH_Draw();
+    DGH_Loop();
 
     glfwSwapBuffers(window);
-}
-
-void WH_DrawDebugGui() {
-    DGH_FIELD((float)currentTime);
-    DGH_FIELD((float)currentTimeFixed);
-    DGH_FIELD((float)deltaTime);
-    DGH_FIELD(isMouseFree);
 }

@@ -21,6 +21,4 @@ struct Bone {
 void Bone_Init(Bone* bone, Bone* bones, const cgltf_node* joint, BoneID* numBones, const mat4s inverseBindMatrices[]);
 void Bone_Destroy(Bone* bone);
 
-void Bone_DrawDebugGui(const Bone* bone, const char name[]);
-
 #endif

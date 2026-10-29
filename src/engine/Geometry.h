@@ -19,6 +19,4 @@ void Geometry_Init(Geometry* geometry, const char fileName[]);
 vec3s Geometry_GetVertex(const Geometry* geometry, TriangleID triId, Index3D index);
 TriangleID Geometry_Raycast(const Geometry* geometry, Ray ray, vec3s* dest);
 
-void Geometry_DrawDebugGui(const Geometry* geometry, const char name[]);
-
 #endif

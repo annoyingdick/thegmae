@@ -31,7 +31,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(CGLM)
 FetchContent_Declare(
     nuklear 
-    URL https://raw.githubusercontent.com/Immediate-Mode-UI/Nuklear/v4.13.3/nuklear.h
+    URL https://raw.githubusercontent.com/Immediate-Mode-UI/Nuklear/refs/heads/master/nuklear.h
     DOWNLOAD_NO_EXTRACT TRUE
 )
 FetchContent_MakeAvailable(nuklear)
@@ -59,6 +59,12 @@ FetchContent_Declare(
     DOWNLOAD_NO_EXTRACT TRUE
 )
 FetchContent_MakeAvailable(stbinclude)
+FetchContent_Declare(
+    nuklearglfw
+    URL https://raw.githubusercontent.com/Immediate-Mode-UI/Nuklear/refs/heads/master/demo/glfw_opengl4/nuklear_glfw_gl4.h
+    DOWNLOAD_NO_EXTRACT TRUE
+)
+FetchContent_MakeAvailable(nuklearglfw)
 
 #set(CMAKE_C_FLAGS_DEBUG "")
 #set(CMAKE_C_FLAGS_RELEASE "-O3")
@@ -79,6 +85,7 @@ target_include_directories(thegmae PUBLIC ${stbimage_SOURCE_DIR})
 target_include_directories(thegmae SYSTEM PUBLIC ${stbinclude_SOURCE_DIR})
 target_include_directories(thegmae PUBLIC ${cgltf_SOURCE_DIR})
 target_include_directories(thegmae PUBLIC ${khashl_SOURCE_DIR})
+target_include_directories(thegmae PUBLIC ${nuklearglfw_SOURCE_DIR})
 
 if (ENABLE_ALL_WARNINGS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror")

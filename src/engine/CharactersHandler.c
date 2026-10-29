@@ -1,7 +1,6 @@
 #include <cglm/struct/vec3.h>
 #include <cglm/struct/quat.h>
 #include "Arena.h"
-#include "DebugGuiHandler.h"
 #include "CharactersHandler.h"
 
 #define INIT_NUM_CHARACTERS 2
@@ -131,13 +130,4 @@ void CH_Loop() {
 	    }
 	forend
     }
-}
-
-void CH_DrawDebugGui() {
-    DGH_FIELD(&arena);
-    DGH_FIELD(&collision);
-    DGH_FIELD(&mesh);
-    DGH_FIELD(nextCharacterId);
-    DGH_FIELD(areAnimationsLoaded);
-    DGH_ARRAY(characters, nextCharacterId);
 }

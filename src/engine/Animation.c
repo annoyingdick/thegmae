@@ -1,7 +1,6 @@
 #include <math.h>
 #include "def.h"
 #include "Bone.h"
-#include "DebugGuiHandler.h"
 #include "Animation.h"
 
 void Animation_Init(Animation* const animation, const cgltf_animation* const cgltfAnimation, const cgltf_size numJoints) {
@@ -82,8 +81,3 @@ void Animation_Destroy(const Animation* animation, const BoneID numBones) {
     free(animation->setsRot);
     free(animation->setsScale);
 }
-
-DGH_BEGIN(Animation, animation, 2) {
-    DGH_FIELD(animation->name);
-    DGH_FIELD(animation->duration);
-DGH_END }

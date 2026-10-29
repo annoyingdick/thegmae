@@ -1,5 +1,4 @@
 #include "def.h"
-#include "DebugGuiHandler.h"
 #include "PathHandler.h"
 
 static PathStringSize filesMainPathStrSize;
@@ -57,9 +56,4 @@ void* PH_OpenFile(const char relPathStr[const], const PathStringSize relPathStrS
     if (outFileSize) *outFileSize = fileSize;
 
     return string;
-}
-
-void PH_DrawDebugGui() {
-    DGH_FIELD(filesMainPathStrSize);
-    DGH_FIELD(filesMainPathStr);
 }

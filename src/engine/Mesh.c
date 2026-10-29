@@ -1,7 +1,6 @@
 #include <cglm/struct/box.h>
 #include "def.h" // IWYU pragma: keep
 #include "TexturesHandler.h"
-#include "DebugGuiHandler.h"
 
 #define REDEF_PRINTFD
 #include "ModelsHandler.h"
@@ -161,16 +160,3 @@ void Mesh_Destroy(Mesh* const mesh) {
     //invalidate
     Mesh_Invalidate(mesh);
 }
-
-DGH_BEGIN(Mesh, mesh, 17) {
-    DGH_FIELD(&mesh->verticesRegion);
-    DGH_FIELD(&mesh->indicesRegion);
-
-#define X(type, name) DGH_FIELD(mesh->name);
-    VARS_MESH // +6
-#undef X
-
-    DGH_ARRAY(mesh->animations, mesh->numAnimations);
-    DGH_ARRAY(mesh->usedTextures, mesh->numUsedTextures);
-    DGH_ARRAY(mesh->bones, mesh->numBones);
-DGH_END }

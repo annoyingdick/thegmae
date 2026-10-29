@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include "DrawElementsIndirectCommand.h"
 #include "Render.h"
-#include "DebugGuiHandler.h"
 #include "Pip.h"
 
 #define INIT_NUM_VERTICES 2
@@ -118,12 +117,3 @@ void Pip_Draw(const Pip* const pip) {
     GL_CHECK(glMemoryBarrier(GL_COMMAND_BARRIER_BIT)); //this is what shitty documentation does to mf
     GL_CHECK(glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, pip->nextMeshId, 0));
 }
-
-DGH_BEGIN(Pip, pip, 17) {
-    DGH_FIELD(&pip->verticesArena);
-    DGH_FIELD(&pip->commandsArena);
-    DGH_FIELD(pip->nextMeshId);
-    //DGH_FIELD(pip->numInstances);
-    //DGH_FIELD(pip->instancesAllocationSize);
-    //DGH_ARRAY(pip->baseInstances, pip->numInstances);
-DGH_END }

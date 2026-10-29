@@ -95,6 +95,4 @@ void R_Loop(float interp);
 void R_FixedLoop();
 void R_FixedLoopOnce();
 
-void R_DrawDebugGui();
-
 #endif

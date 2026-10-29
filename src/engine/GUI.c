@@ -474,7 +474,7 @@ bool GUI_ThrowError(const Hint title, const Hint description) {
 	Mesh_Invalidate(&cmesh);
 
 	y = initText(
-	    &tmesh, "The gmae crashed!", (vec2s){{-1, 1}}, size * 2, outline, xmax, ALIGN_LEFT, true
+	    &tmesh, "The gmae has crashed!", (vec2s){{-1, 1}}, size * 2, outline, xmax, ALIGN_LEFT, true
 	).raw[1] + size;
 
 	y += initText(&titmesh, title, (vec2s){{-1, 1 - y}}, size, outline, xmax, ALIGN_LEFT, true).raw[1] + size;

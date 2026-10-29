@@ -39,6 +39,4 @@ typedef struct {
 void Animation_Init(Animation* animation, const cgltf_animation* cgltfAnimation, cgltf_size numJoints);
 void Animation_Destroy(const Animation* animation, BoneID numBones);
 
-void Animation_DrawDebugGui(const Animation* animation, const char name[]);
-
 #endif

@@ -13,6 +13,4 @@ TriangleID NH_GetClosestTriangle(vec3s p);
 TriangleID NH_GetRandomPoint(vec3s* dest);
 const Geometry* NH_GetGeometry();
 
-void NH_DrawDebugGui();
-
 #endif

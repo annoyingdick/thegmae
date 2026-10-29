@@ -1,6 +1,5 @@
 #include <math.h>
 #include "WindowHandler.h"
-#include "DebugGuiHandler.h"
 #include "AnimationTrack.h"
 
 #define WEIGHT_CHANGE_TIME 0.5f
@@ -49,11 +48,3 @@ void AnimationTrack_FadeIn(AnimationTrack* const track, const bool add) {
 	if (!track->weight) track->peakWeight = 0;
     }
 }
-
-DGH_BEGIN(AnimationTrack, track, 6) {
-    DGH_PTR(track->animation);
-
-#define X(type, name) DGH_FIELD(track->name);
-    VARS_ANIMATIONTRACK // +5
-#undef X
-DGH_END }

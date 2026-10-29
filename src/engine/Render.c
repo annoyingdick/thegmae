@@ -7,7 +7,6 @@
 #include "Camera.h"
 #include "TexturesHandler.h"
 #include "ModelsHandler.h"
-#include "DebugGuiHandler.h"
 #include "FixedPipMuzzle.h"
 #include "NPip.h"
 #include "Render.h"
@@ -489,19 +488,4 @@ void R_FixedLoopOnce() {
 
     //idk why this causes GL_INVALID_VALUE error in nsight, everything is in bounds, real wtf moment right here
     FLUSH_DYNAMIC_PIPELINE_BUFFER(GRAPHICS_PIPELINE_INTERP);
-}
-
-void R_DrawDebugGui() {
-    DGH_FIELD(&indicesArena);
-    //DGH_FIELD(&pipStatic.base);
-    DGH_FIELD(readNormalIndex);
-    DGH_FIELD(writeNormalIndex);
-    DGH_FIELD(readInterpIndex);
-    DGH_FIELD(writeInterpIndex);
-    DGH_FIELD(pvMat);
-    DGH_FIELD(perspectiveMat);
-    DGH_ARRAYN(dynamics);
-    //DGH_ARRAYN(statics); TODO
-    DGH_ARRAYN(pipelinesInstanceDataSizes);
-    DGH_ARRAYN(pipelinesVertexSizes);
 }

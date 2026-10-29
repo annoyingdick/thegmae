@@ -13,6 +13,4 @@ typedef struct {
 
 RegionPosition Region_GetEnd(const Region* region);
 
-void Region_DrawDebugGui(const Region* region, const char name[]);
-
 #endif

@@ -1,7 +1,6 @@
 #include <khashl.h>
 #include <cglm/struct/vec3.h>
 #include "HeapQueue.h"
-#include "DebugGuiHandler.h"
 #include "NavigationHandler.h"
 
 #define DIR0 1
@@ -541,9 +540,4 @@ TriangleID NH_GetRandomPoint(vec3s* const dest) {
 }
 const Geometry* NH_GetGeometry() {
     return &geometry;
-}
-
-void NH_DrawDebugGui() {
-    DGH_FIELD(&geometry);
-    DGH_ARRAY(centers, geometry.numTriangles);
 }

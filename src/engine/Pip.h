@@ -26,10 +26,6 @@ X(BUFFER_BINDING_TERRAIN_VERTICES)
 #define GL_CHECK(x) x
 #endif
 
-#define VEC3DUP(x) x.raw[0], x.raw[1], x.raw[2]
-#define VEC2XZ(x, a) (vec3s){{x.raw[0] * a, 0, x.raw[1] * a}}
-#define VEC3XZ2(x) (vec2s){{x.raw[0], x.raw[2]}}
-
 //Base pipeline struct. Useless on its own, because it doesn't upload any draw commands into the gpu.
 typedef struct {
     Arena verticesArena, commandsArena;
@@ -64,7 +60,5 @@ void Pip_UploadMesh(const Pip* pip, UploadMeshInfo info, InstanceID numInstances
 void Pip_UploadMeshFirstTime(Pip* pip, PipUploadMeshFirstTimeInfo info);
 void Pip_Run(const Pip* pip);
 void Pip_Draw(const Pip* pip);
-
-void Pip_DrawDebugGui(const Pip* pip, const char name[]);
 
 #endif

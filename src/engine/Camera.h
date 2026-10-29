@@ -7,8 +7,7 @@
 X(float, yaw, FLOAT) \
 X(float, pitch, FLOAT) \
 X(float, distance, FLOAT) \
-X(vec3s, lookAtPosition, VECTOR) \
-X(vec3s, velocity, VECTOR)
+X(vec3s, lookAtPosition, VECTOR)
 
 void Camera_Init();
 float Camera_GetYaw();
@@ -18,7 +17,5 @@ mat4s Camera_GetPerspectiveCameraMatrix(mat4s perspectiveMat);
 void Camera_SetLookAtPosition(vec3s position);
 void Camera_MouseWheel(float scroll, float x, float y);
 void Camera_MouseMotion(float xrel, float yrel);
-
-void* const* Camera_GetPublicVars();
 
 #endif

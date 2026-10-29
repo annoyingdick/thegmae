@@ -10,6 +10,4 @@ PathStringSize PH_GetAbsolutePathStrSize(PathStringSize relPathStrSize);
 void PH_GetAbsolutePathStr(char dest[], const char relPathStr[]);
 void* PH_OpenFile(const char relPathStr[], PathStringSize relPathStrSize, size_t* outFileSize);
 
-void PH_DrawDebugGui();
-
 #endif

@@ -1,5 +1,4 @@
-#include "def.h"
-#include "DebugGuiHandler.h"
+#include "Arena.h"
 #include "InstancesHandler.h"
 
 //#define IN_DEBUG
@@ -87,19 +86,4 @@ void IH_UploadStatic(const InstancePtrID ptrId, const size_t size, const void* c
 }
 void* IH_GetUploadPtr(const InstancePtrID ptrId) {
     return R_GetUploadPtr(instances[ptrId].mesh->pipId, instances[ptrId].id);
-}
-
-void IH_DrawDebugGui() {
-    DGH_FIELD(&arena);
-    DGH_FIELD(nextPtrId);
-    DGH_ARRAY(instances, nextPtrId);
-}
-
-void Instance_DrawDebugGui(const Instance* const instance, const char name[const]) {
-    if (DGH_Begin(name, 2)) {
-	DGH_FIELD(instance->id);
-	DGH_PTR(instance->mesh);
-
-	DGH_End();
-    }
 }

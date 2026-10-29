@@ -1,4 +1,5 @@
 #include <math.h>
+#include "vdef.h"
 #include "TexturesHandler.h"
 #include "Pip.h"
 #include "FixedPipMuzzle.h"

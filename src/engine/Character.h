@@ -93,6 +93,4 @@ void Character_HandleFatigue(Character* character);
 //if (Character_ShouldProcessShot(character)) character->tracks[WEAPON_ANIMATION_SHOOT].weight = FLOAT_BINONE;
 void Character_Loop(Character* character);
 
-void Character_DrawDebugGui(const Character* character, const char name[]);
-
 #endif

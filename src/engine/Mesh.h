@@ -61,6 +61,4 @@ void Mesh_UpdateIndicesVertices(Mesh* mesh, MeshInitWithDataInfo info);
 void Mesh_Invalidate(Mesh* mesh);
 void Mesh_Destroy(Mesh* mesh);
 
-void Mesh_DrawDebugGui(const Mesh* mesh, const char name[]);
-
 #endif

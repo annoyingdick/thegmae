@@ -26,6 +26,4 @@ void AnimationTrack_Go(AnimationTrack* track);
 void AnimationTrack_GoTillEnd(AnimationTrack* track);
 void AnimationTrack_FadeIn(AnimationTrack* track, bool add);
 
-void AnimationTrack_DrawDebugGui(const AnimationTrack* track, const char name[]);
-
 #endif

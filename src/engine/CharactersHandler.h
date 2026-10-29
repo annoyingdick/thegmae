@@ -11,6 +11,4 @@ Character* CH_FindClosestVisibleAimableCharacter(Character* character);
 Mesh* CH_GetMesh();
 void CH_Loop();
 
-void CH_DrawDebugGui();
-
 #endif

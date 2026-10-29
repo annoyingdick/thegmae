@@ -1,4 +1,5 @@
-#include "DebugGuiHandler.h"
+#include <stdlib.h>
+#include <string.h>
 #include "Bone.h"
 
 void Bone_Init(
@@ -29,11 +30,3 @@ void Bone_Destroy(Bone* const bone) {
 
     for (size_t i = 0; i < bone->numChildren; i++) Bone_Destroy(bone->children + i);
 }
-
-DGH_BEGIN(Bone, bone, 10) {
-    DGH_FIELD(bone->off);
-    DGH_FIELD(bone->name);
-    DGH_ARRAY(bone->children, bone->numChildren);
-    DGH_FIELD(bone->numChildren);
-    DGH_FIELD(bone->id);
-DGH_END }

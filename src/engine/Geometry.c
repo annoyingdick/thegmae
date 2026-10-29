@@ -2,7 +2,6 @@
 #include <cglm/struct/ray.h>
 #include "def.h"
 #include "ModelsHandler.h"
-#include "DebugGuiHandler.h"
 #include "Geometry.h"
 
 void Geometry_Init(Geometry* const geometry, const char fileName[const]) {
@@ -60,10 +59,3 @@ TriangleID Geometry_Raycast(const Geometry* const geometry, const Ray ray, vec3s
 
     return triangleId;
 }
-
-DGH_BEGIN(Geometry, geometry, 4) {
-    DGH_FIELD(geometry->numVertices);
-    DGH_FIELD(geometry->numTriangles);
-    DGH_ARRAY(geometry->vertices, geometry->numVertices);
-    DGH_ARRAY(geometry->triangles, geometry->numTriangles);
-DGH_END }

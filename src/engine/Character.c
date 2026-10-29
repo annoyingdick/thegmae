@@ -7,8 +7,8 @@
 #include "WindowHandler.h"
 #include "NavigationHandler.h"
 #include "CharactersHandler.h"
-#include "DebugGuiHandler.h"
 #include "GUI.h"
+#include "vdef.h"
 
 //#define DO_NOT_KILL
 
@@ -647,17 +647,3 @@ void Character_Loop(Character* const character) {
 	animate(character);
     }
 }
-
-DGH_BEGIN(Character, character, 18) {
-    DGH_ARRAYT(character->path);
-
-#define X(type, name) DGH_FIELD(character->name);
-    VARS_CHARACTER
-#undef X
-
-    DGH_Vec3(character->position.raw, "position:");
-    DGH_Vec2(character->direction.raw, "direction:");
-
-    DGH_PTR(character->target);
-    DGH_ARRAYN(character->tracks);
-DGH_END }

@@ -6,9 +6,6 @@
 #define X(type, name, typeenum) static type name;
 PUBVARS_Camera
 #undef X
-#define X(type, name, typeenum) &name,
-static void* const pub[] = {PUBVARS_Camera};
-#undef X
 
 #define PITCH -M_PI_2
 
@@ -106,8 +103,4 @@ void Camera_MouseMotion(const float xrel, const float yrel) {
 #else
     if (xrel && yrel) {}
 #endif
-}
-
-void* const* Camera_GetPublicVars() {
-    return pub;
 }

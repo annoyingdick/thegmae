@@ -241,7 +241,16 @@ void WH_Init() {
     //SDL_CHECK(SDL_StartTextInput(window));
 }
 void WH_R_PostInit() {
+#ifdef DEBUG
     DGH_Init(window);
+#endif
+}
+float WH_GetWindowHeight() {
+    float w, h;
+
+    WH_GetWindowSize(&w, &h);
+
+    return h;
 }
 void WH_GetWindowSize(float* const width, float* const height) {
     int w, h;
@@ -284,7 +293,9 @@ WHLoopResult WH_Loop() {
     return doTimeOperations();
 }
 void WH_R_PostLoop() {
+#ifdef DEBUG
     DGH_Loop();
+#endif
 
     glfwSwapBuffers(window);
 }

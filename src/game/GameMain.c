@@ -19,8 +19,6 @@ static Mesh cubeMeshDyn, tlt, navMesh;
 static Mesh weaponMesh;
 static Player character;
 static Character angry[NUM_TEST_CHARACTERS];
-static ShaderProgram linesProgram;
-static GPUBuffer linesVerticesBuffer, linesIndicesBuffer;
 
 static InstancePtrID testCubes[NUM_TEST_CUBES];
 static PhysBodyID testCubesPhys[NUM_TEST_CUBES];
@@ -66,8 +64,6 @@ static void specifyLinesWidth() {
 //Create instances only once a mesh is initialized, not after.
 
 void GM_Init() {
-    const Geometry* const navgeo = NH_GetGeometry();
-
     Mesh_Init(&cubeMeshDyn, GRAPHICS_PIPELINE_INTERP, "deagle.gltf");
     Mesh_Init(&navMesh, GRAPHICS_PIPELINE_STATIC, "nav.gltf");
     Mesh_Init(&weaponMesh, GRAPHICS_PIPELINE_NORMAL, "deagle.gltf");
@@ -86,19 +82,6 @@ void GM_Init() {
 
 	Character_ChooseSlot(an, 1);
     forend
-
-    ShaderProgram_Init_VF(
-	&linesProgram, (ShaderProgramInitInfo_VF){"lines.vert", "lines.frag"}
-    );
-
-    GPUBuffer_InitWithData(
-	&linesVerticesBuffer, navgeo->numVertices * (GLsizeiptr)sizeof(*navgeo->vertices), 
-	navgeo->vertices
-    );
-    GPUBuffer_InitWithData(
-	&linesIndicesBuffer, navgeo->numTriangles * (GLsizeiptr)sizeof(*navgeo->triangles), 
-	navgeo->triangles
-    );
     
     specifyLinesWidth();
 
@@ -268,17 +251,7 @@ void GM_Loop(const float interp) {
     //Camera_SetLookAtPosition((vec3){5, 0, -5});
 }
 void GM_R_PostLoop() {
-    ShaderProgram_Use(linesProgram);
 
-    GPUBuffer_BindBase(linesVerticesBuffer, GL_SHADER_STORAGE_BUFFER, BUFFER_BINDING_VERTICES);
-    GPUBuffer_Bind(linesIndicesBuffer, GL_ELEMENT_ARRAY_BUFFER);
-
-    glDepthFunc(GL_ALWAYS);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(
-	GL_TRIANGLES, (GLsizei)NH_GetGeometry()->numTriangles * 3, GL_UNSIGNED_INT, NULL
-    );
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 void GM_PSH_PreFixedLoop() {
 

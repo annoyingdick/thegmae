@@ -32,6 +32,7 @@ enum {
 
 void WH_Init();
 void WH_R_PostInit();
+float WH_GetWindowHeight();
 void WH_GetWindowSize(float* width, float* height);
 void WH_GetWindowSizeInt(int* width, int* height);
 float WH_GetWindowInvRatio();
